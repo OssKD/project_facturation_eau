@@ -27,7 +27,7 @@ public class NotificationsPanel extends JPanel {
 	    private JButton markAllReadButton;
 
 	    public NotificationsPanel() {
-	        setLayout(new BorderLayout());
+	        setLayout(new BorderLayout()); 
 
 	        JLabel titleLabel = new JLabel("Notifications Client");
 	        titleLabel.setFont(new Font("Arial", Font.BOLD, 16));

@@ -11,11 +11,12 @@ public class MAINAPP {
             frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
             // On met ton panel à l’intérieur
-            frame.setContentPane(new FacturesPanel());
+            frame.setContentPane(new FacturesPanel(0));
 
             frame.pack();                 // ajuste taille selon préférences
             frame.setLocationRelativeTo(null);  // centre l’écran
             frame.setVisible(true);
-        });
+            
+        }); 
     }
 }

@@ -1,177 +1,195 @@
 package interfasseClient;
 
-import java.awt.BorderLayout;
-import java.awt.Component;
-import java.awt.FlowLayout;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.awt.*;
+import java.awt.event.*;
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
+import javax.swing.*;
+import javax.swing.table.*;
 
-import javax.swing.DefaultCellEditor;
-import javax.swing.JButton;
-import javax.swing.JCheckBox;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JTable;
-import javax.swing.JTextField;
-import javax.swing.table.DefaultTableModel;
-import javax.swing.table.TableCellRenderer;
+import Config.PaymentForm; // pour accéder à PaymentForm
 
+public class FacturesPanel extends JPanel {
+    private JTable facturesTable;
+    private JTextField filterMonthField;
+    private JButton filterButton, payerButton;
+    private DefaultTableModel tableModel;
+    private int id_user;
+    public FacturesPanel(int id) {
+    	this.id_user=id;
+        setLayout(new BorderLayout());
 
+        // Panel de filtrage
+        JPanel filterPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        filterPanel.add(new JLabel("Filtrer par Mois :"));
+        filterMonthField = new JTextField(10);
+        filterPanel.add(filterMonthField);
 
-	public class FacturesPanel extends JPanel {
-	    private JTable facturesTable;
-	    private JTextField filterMonthField, filterStatusField;
-	    private JButton filterButton;
-	    private DefaultTableModel tableModel;
+        filterButton = new JButton("Filtrer");
+        filterPanel.add(filterButton);
 
-	    public FacturesPanel() {
-	        setLayout(new BorderLayout());
+        payerButton = new JButton("Payer");
+        filterPanel.add(payerButton);
 
-	        // Panel de filtrage
-	        JPanel filterPanel = new JPanel();
-	        filterPanel.setLayout(new FlowLayout(FlowLayout.LEFT));
+        add(filterPanel, BorderLayout.NORTH);
 
-	        filterPanel.add(new JLabel("Filtrer par Mois :"));
-	        filterMonthField = new JTextField(10);
-	        filterPanel.add(filterMonthField);
+        // Table avec une colonne checkbox
+        tableModel = new DefaultTableModel(
+            new Object[]{"Sélectionner", "id_facture", "Mois", "Montant", "Statut", "Télécharger"}, 0
+        ) {
+            @Override
+            public Class<?> getColumnClass(int columnIndex) {
+                if (columnIndex == 0) return Boolean.class; // Première colonne : checkbox
+                return super.getColumnClass(columnIndex);
+            }
 
-	        filterPanel.add(new JLabel("Filtrer par Statut :"));
-	        filterStatusField = new JTextField(10);
-	        filterPanel.add(filterStatusField);
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return column == 0 || column == 5; // Seulement la case à cocher et le bouton Télécharger sont éditables
+            }
+        };
 
-	        filterButton = new JButton("Filtrer");
-	        filterPanel.add(filterButton);
+        facturesTable = new JTable(tableModel);
+        facturesTable.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
 
-	        add(filterPanel, BorderLayout.NORTH);
+        // Ajouter les boutons "Télécharger"
+        facturesTable.getColumn("Télécharger").setCellRenderer(new ButtonRenderer());
+        facturesTable.getColumn("Télécharger").setCellEditor(new ButtonEditor(new JCheckBox()));
 
-	        // Table des factures
-	        tableModel = new DefaultTableModel(new String[]{"Mois", "Montant", "Statut", "Télécharger"}, 0);
-	        facturesTable = new JTable(tableModel);
+        JScrollPane tableScrollPane = new JScrollPane(facturesTable);
+        add(tableScrollPane, BorderLayout.CENTER);
 
-	        // Ajout d'un bouton dans la table pour chaque ligne (télécharger PDF)
-	        facturesTable.getColumn("Télécharger").setCellRenderer(new ButtonRenderer());
-	        facturesTable.getColumn("Télécharger").setCellEditor(new ButtonEditor(new JCheckBox()));
+        // Charger les données
+        loadFacturesData(id_user);
 
-	        JScrollPane tableScrollPane = new JScrollPane(facturesTable);
-	        add(tableScrollPane, BorderLayout.CENTER);
+        // Actions des boutons
+        filterButton.addActionListener(e -> filterFactures());
+        payerButton.addActionListener(e -> payerFactures());
+    }
 
-	        // Charger les factures au démarrage
-	        loadFacturesData();
+    private void loadFacturesData(int id) {
+    	String sql ="SELECT * FROM facture where id_user=?";
+    	
+        try (Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/javaswing_app", "root", "");
+        		 PreparedStatement stmt = conn.prepareStatement(sql)) {
+        	
+			stmt.setInt(1, id );
+            ResultSet rs = stmt.executeQuery();
+            tableModel.setRowCount(0); // Clear existing
+            while (rs.next()) {
+                int id_facture = rs.getInt("id_facture");
+                String mois = rs.getString("mois");
+                double montant = rs.getDouble("montant");
+                String statut = rs.getString("moitie");
+                tableModel.addRow(new Object[]{false, id_facture, mois, montant, statut, "Télécharger"});
+            }
 
-	        // Action du bouton Filtrer
-	        filterButton.addActionListener(e -> filterFactures());
-	    }
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Erreur lors du chargement des factures.");
+        }
+    }
 
-	    // Charger les factures depuis la base de données
-	    private void loadFacturesData() {
-	        try (Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/javaswing_app", "root", "");
-	             Statement stmt = conn.createStatement();
-	             ResultSet rs = stmt.executeQuery("SELECT * FROM facture")) {
+    private void filterFactures() {
+        String filterMonth = filterMonthField.getText().trim();
+        String query = "SELECT * FROM facture WHERE mois LIKE ?";
 
-	            while (rs.next()) {
-	                String mois = rs.getString("mois");
-	                double montant = rs.getDouble("montant");
-	                String statut = rs.getString("moitie");
-	                tableModel.addRow(new Object[]{mois, montant, statut, "Télécharger"});
-	            }
+        try (Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/javaswing_app", "root", "");
+             PreparedStatement stmt = conn.prepareStatement(query)) {
 
-	        } catch (SQLException ex) {
-	            ex.printStackTrace();
-	            JOptionPane.showMessageDialog(this, "Erreur lors du chargement des factures.");
-	        }
-	    }
+            stmt.setString(1, "%" + filterMonth + "%");
+            ResultSet rs = stmt.executeQuery();
 
-	    // Filtrer les factures selon les critères
-	    private void filterFactures() {
-	        String filterMonth = filterMonthField.getText().trim();
-	        String filterStatus = filterStatusField.getText().trim();
+            tableModel.setRowCount(0);
+            while (rs.next()) {
+                int id_facture = rs.getInt("id_facture");
+                String mois = rs.getString("mois");
+                double montant = rs.getDouble("montant");
+                String statut = rs.getString("moitie");
+                tableModel.addRow(new Object[]{false, id_facture, mois, montant, statut, "Télécharger"});
+            }
 
-	        // Requête pour filtrer selon le mois et le statut
-	        String query = "SELECT * FROM factures WHERE mois LIKE ? AND statut LIKE ?";
-	        try (Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/gestion_eau", "root", "");
-	             PreparedStatement stmt = conn.prepareStatement(query)) {
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Erreur lors du filtrage des factures.");
+        }
+    }
 
-	            stmt.setString(1, "%" + filterMonth + "%");
-	            stmt.setString(2, "%" + filterStatus + "%");
-	            ResultSet rs = stmt.executeQuery();
+    private void payerFactures() {
+        List<Integer> selectedIds = new ArrayList<>();
 
-	            // Vider la table actuelle
-	            tableModel.setRowCount(0);
+        for (int i = 0; i < facturesTable.getRowCount(); i++) {
+            Boolean isSelected = (Boolean) facturesTable.getValueAt(i, 0);
+            if (isSelected != null && isSelected) {
+                int id_facture = (int) facturesTable.getValueAt(i, 1); // colonne 1 = id_facture
+                selectedIds.add(id_facture);
+            }
+        }
 
-	            while (rs.next()) {
-	                String mois = rs.getString("mois");
-	                double montant = rs.getDouble("montant");
-	                String statut = rs.getString("statut");
-	                tableModel.addRow(new Object[]{mois, montant, statut, "Télécharger"});
-	            }
+        if (selectedIds.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Veuillez cocher au moins une facture à payer.");
+            return;
+        }
 
-	        } catch (SQLException ex) {
-	            ex.printStackTrace();
-	            JOptionPane.showMessageDialog(this, "Erreur lors du filtrage des factures.");
-	        }
-	    }
+        // Simuler l'ouverture du formulaire de paiement
+        PaymentForm payer = new PaymentForm();
+        payer.setVisible(true);
+    }
 
-	    // Classe pour afficher un bouton dans la colonne "Télécharger"
-	    class ButtonRenderer extends JButton implements TableCellRenderer {
-	        public ButtonRenderer() {
-	            setOpaque(true);
-	        }
+    class ButtonRenderer extends JButton implements TableCellRenderer {
+        public ButtonRenderer() {
+            setOpaque(true);
+        }
 
-	        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
-	            setText("Télécharger");
-	            return this;
-	        }
-	    }
+        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+            setText("Télécharger");
+            return this;
+        }
+    }
 
-	    // Classe pour gérer l'action du bouton "Télécharger"
-	    class ButtonEditor extends DefaultCellEditor {
-	        protected JButton button;
-	        private String label;
-	        private boolean isPushed;
+    class ButtonEditor extends DefaultCellEditor {
+        protected JButton button;
+        private String label;
+        private boolean isPushed;
+        private int selectedRow;
 
-	        public ButtonEditor(JCheckBox checkBox) {
-	            super(checkBox);
-	            button = new JButton();
-	            button.setOpaque(true);
-	            button.addActionListener(new ActionListener() {
-	                public void actionPerformed(ActionEvent e) {
-	                    int row = facturesTable.getSelectedRow();
-	                    String mois = (String) facturesTable.getValueAt(row, 0);
-	                    // Ici, on appelle la fonction pour générer le PDF ou télécharger la facture
-	                    downloadPDF(mois);
-	                }
-	            });
-	        }
+        public ButtonEditor(JCheckBox checkBox) {
+            super(checkBox);
+            button = new JButton();
+            button.setOpaque(true);
 
-	        public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row, int column) {
-	            label = (value == null) ? "Télécharger" : value.toString();
-	            button.setText(label);
-	            isPushed = true;
-	            return button;
-	        }
+            button.addActionListener(new ActionListener() {
+                public void actionPerformed(ActionEvent e) {
+                    fireEditingStopped();
+                    try {
+                        int id_facture = (int) facturesTable.getValueAt(selectedRow, 1); // id_facture = colonne 1 maintenant
+                        downloadPDF(id_facture);
+                        JOptionPane.showMessageDialog(null, "Facture " + id_facture + " téléchargée avec succès !");
+                    } catch (SQLException ex) {
+                        ex.printStackTrace();
+                        JOptionPane.showMessageDialog(null, "Erreur lors du téléchargement de la facture.");
+                    }
+                }
+            });
+        }
 
-	        public Object getCellEditorValue() {
-	            if (isPushed) {
-	                // Action pour télécharger le PDF de la facture
-	                isPushed = false;
-	            }
-	            return label;
-	        }
-	    }
+        public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row, int column) {
+            label = (value == null) ? "Télécharger" : value.toString();
+            button.setText(label);
+            isPushed = true;
+            selectedRow = row;
+            return button;
+        }
 
-	    // Fonction pour simuler le téléchargement du PDF
-	    private void downloadPDF(String mois) {
-	        // Code pour générer ou télécharger le PDF (simulé ici)
-	        JOptionPane.showMessageDialog(this, "Téléchargement du PDF pour le mois : " + mois);
-	    }
-	}
+        public Object getCellEditorValue() {
+            isPushed = false;
+            return label;
+        }
+    }
 
-
+    private void downloadPDF(int id_facture) throws SQLException {
+        PdfGenerator pdfGenerator = new PdfGenerator();
+        pdfGenerator.generatePDF(id_facture);
+    }
+}

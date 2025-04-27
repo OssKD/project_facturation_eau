@@ -1,4 +1,4 @@
-package interfaceAdmin;
+package interfasseAdmin;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -101,7 +101,7 @@ public class AdminDashboard extends JFrame {
             {"\uD83D\uDC64", "Gestion Clients"},
             {"\uD83D\uDCB8", "Gestion Factures"},
             {"\uD83D\uDD14", "Notifications"},
-            {"\uD83D\uDCCA", "Statistiques"},
+            {"\uD83D\uDCCA", "Statistiques"}, 
         };
 
         for (int i = 0; i < menuItems.length; i++) {

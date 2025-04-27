@@ -1,4 +1,4 @@
-package interfaceAdmin;
+package interfasseAdmin;
 
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;

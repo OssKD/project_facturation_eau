@@ -16,6 +16,7 @@ import javax.swing.JPanel;
 import javax.swing.JPasswordField;
 import javax.swing.JTextField;
 
+import interfasseAdmin.AdminDashboard;
 import interfasseClient.ClientDashboard;
 
 	public class LoginPanel extends JPanel {
@@ -42,8 +43,8 @@ import interfasseClient.ClientDashboard;
 	        gbc.gridx = 0; gbc.gridy = 0;
 	        add(emailLabel, gbc);
 	        gbc.gridx = 1;
-	        add(emailField, gbc);
-
+	        add(emailField, gbc); 
+ 
 	        gbc.gridx = 0; gbc.gridy = 1;
 	        add(passwordLabel, gbc);
 	        gbc.gridx = 1;
@@ -95,10 +96,15 @@ import interfasseClient.ClientDashboard;
 	            ResultSet rs = stmt.executeQuery();
 
 	            if (rs.next()) {
-	                      
-	                ClientDashboard dashboard = new ClientDashboard(email);
-	                dashboard.setVisible(true);
+	                int id = rs.getInt("id_user"); // Récupérer l'id_user depuis la base
 
+	                if (email.equals("admin") && password.equals("123")) {
+	                    AdminDashboard dashboard = new AdminDashboard();
+	                    dashboard.setVisible(true);
+	                } else {
+	                    ClientDashboard dashboard = new ClientDashboard(id); // Passer l'id_user 
+	                    dashboard.setVisible(true);
+	                }
 	                // Ferme l'ancienne fenêtre
 	                frame.dispose();
 	            } else {

@@ -16,10 +16,10 @@ import javax.swing.SwingUtilities;
 public class ClientDashboard extends JFrame {
     private CardLayout cardLayout;
     private JPanel contentPanel;
-    private String userEmail;
-    public ClientDashboard(String email) {
-    	this.userEmail=email;
-        setTitle("Dashboard Client");
+    private int id;
+    public ClientDashboard(int id_user) {
+    	this.id=id_user;
+        setTitle("Dashboard Client"+id);
         setSize(900, 600);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -52,8 +52,8 @@ public class ClientDashboard extends JFrame {
         contentPanel = new JPanel(cardLayout);
 
         // Ajout des panels
-        contentPanel.add(new ProfilePanel(email), "profil");
-        contentPanel.add(new FacturesPanel(), "factures");
+        contentPanel.add(new ProfilePanel(id), "profil");
+        contentPanel.add(new FacturesPanel(id), "factures");
         contentPanel.add(new PaymentPanel(), "paiement");
         contentPanel.add(new NotificationsPanel(), "notifications");
 

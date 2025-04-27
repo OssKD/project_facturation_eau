@@ -11,7 +11,7 @@ public class MainAppLogin {
             frame.setContentPane(new LoginPanel(frame)); // panel li fiha l'UI
             frame.pack();
             frame.setLocationRelativeTo(null); // centrer la fenêtre
-            frame.setVisible(true);
+            frame.setVisible(true); 
             
         });
     }

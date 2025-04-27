@@ -19,10 +19,11 @@ public class ProfilePanel extends JPanel {
 	    private JTextField phoneField, addressField ,emailField;
 	    private JLabel phoneLabel  , adressLabel ,emaillabel;
 	    private JButton editButton, saveButton;
-	    private String userEmail;
+	    private int id;
+		String userEmail;
 
-	    public ProfilePanel(String userEmail) {
-	        this.userEmail = userEmail; // L'email de l'utilisateur passé à ce panel
+	    public ProfilePanel(int id_user) {
+	        this.id = id_user; // L'email de l'utilisateur passé à ce panel
 
 	        setLayout(new GridBagLayout());
 	        GridBagConstraints gbc = new GridBagConstraints();
@@ -34,7 +35,7 @@ public class ProfilePanel extends JPanel {
             
 	        emaillabel = new JLabel(userEmail);
 	        
-	        
+	         
 	        
 	        
 	        // Boutons
@@ -83,11 +84,12 @@ public class ProfilePanel extends JPanel {
 	    // Charger les informations de l'utilisateur depuis la base de données
 	    private void loadUserData() {
 	        try (Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/gestion_eau", "root", "");
-	             PreparedStatement stmt = conn.prepareStatement("SELECT phone, address FROM users WHERE email = ?")) {
-	            stmt.setString(1, userEmail);
+	             PreparedStatement stmt = conn.prepareStatement("SELECT phone, address FROM users WHERE id_user = ?")) {
+	            stmt.setInt(1, id);
 	            ResultSet rs = stmt.executeQuery();
 	            
 	            if (rs.next()) {
+	            	userEmail=rs.getString("email");
 	                phoneField.setText(rs.getString("phone"));
 	                addressField.setText(rs.getString("address"));
 	            } else {
@@ -119,11 +121,11 @@ public class ProfilePanel extends JPanel {
 	        }
 
 	        try (Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/javaswing_app", "root", "");
-	             PreparedStatement stmt = conn.prepareStatement("UPDATE users SET phone = ?, address = ? WHERE email = ?")) {
+	             PreparedStatement stmt = conn.prepareStatement("UPDATE users SET phone = ?, address = ? WHERE id_user = ?")) {
 	            
 	            stmt.setString(1, newPhone);
 	            stmt.setString(2, newAddress);
-	            stmt.setString(3, userEmail);
+	            stmt.setInt(3, id);
 
 	            int rowsUpdated = stmt.executeUpdate();
 
