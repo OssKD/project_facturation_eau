@@ -1,0 +1,229 @@
+package interfasseClient;
+
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Cursor;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.awt.Font;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+
+import javax.swing.BorderFactory;
+import javax.swing.Box;
+import javax.swing.BoxLayout;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
+import javax.swing.border.EmptyBorder;
+
+public class ClientDashboard extends JFrame {
+    private JPanel contentPanel;
+    private JPanel menuPanel;
+    private int activeButtonIndex = -1;
+    private int clientId;
+
+    // Couleurs et polices
+    private final Color MAIN_COLOR = new Color(41, 128, 185);
+    private final Color DARK_MAIN_COLOR = new Color(33, 97, 140);
+    private final Color BACKGROUND_COLOR = new Color(245, 245, 245);
+    private final Color MENU_COLOR = new Color(52, 73, 94);
+    private final Color MENU_HOVER_COLOR = new Color(44, 62, 80);
+    private final Font MENU_FONT = new Font("Segoe UI", Font.PLAIN, 14);
+
+    public ClientDashboard(int clientId) {
+        this.clientId = clientId;
+
+        setTitle("Espace Client" + clientId);
+        setSize(1000, 700);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLocationRelativeTo(null);
+        setLayout(new BorderLayout());
+        getContentPane().setBackground(BACKGROUND_COLOR);
+
+        add(createHeaderPanel(), BorderLayout.NORTH);
+        menuPanel = createMenuPanel();
+        add(menuPanel, BorderLayout.WEST);
+
+        contentPanel = new JPanel(new BorderLayout());
+        contentPanel.setBackground(BACKGROUND_COLOR);
+        contentPanel.setBorder(new EmptyBorder(20, 20, 20, 20));
+        add(contentPanel, BorderLayout.CENTER);
+
+        showPanel(createWelcomePanel());
+        setVisible(true);
+    }
+
+    private JPanel createHeaderPanel() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBackground(MAIN_COLOR);
+        panel.setPreferredSize(new Dimension(getWidth(), 60));
+        panel.setBorder(new EmptyBorder(10, 20, 10, 20));
+
+        JLabel title = new JLabel("Tableau de Bord - Espace Client");
+        title.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        title.setForeground(Color.WHITE);
+        panel.add(title, BorderLayout.WEST);
+
+          
+        return panel;
+    }
+
+    private JPanel createMenuPanel() {
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.setBackground(MENU_COLOR);
+        panel.setPreferredSize(new Dimension(220, getHeight()));
+        panel.setBorder(BorderFactory.createMatteBorder(0, 0, 0, 1, DARK_MAIN_COLOR));
+
+        String[][] menuItems = {
+            {"\uD83D\uDC64", "Mon Profil"},
+            {"\uD83D\uDCB3", "Paiement"},
+            {"\uD83D\uDCB8", "Mes Factures"},
+            {"\uD83D\uDD14", "Notifications"},
+        };
+
+        for (int i = 0; i < menuItems.length; i++) {
+            JPanel item = createMenuButton(menuItems[i][0], menuItems[i][1], i);
+            panel.add(item);
+        }
+
+        panel.add(Box.createVerticalGlue());
+
+        JPanel logoutPanel = createMenuButton("\uD83D\uDEAA", "Déconnexion", menuItems.length);
+        panel.add(logoutPanel);
+        panel.add(Box.createRigidArea(new Dimension(0, 20)));
+
+        return panel;
+    }
+
+    private JPanel createMenuButton(String icon, String text, int index) {
+        JPanel buttonPanel = new JPanel(new BorderLayout());
+        buttonPanel.setBackground(MENU_COLOR);
+        buttonPanel.setMaximumSize(new Dimension(220, 50));
+        buttonPanel.setPreferredSize(new Dimension(220, 50));
+        buttonPanel.setBorder(new EmptyBorder(8, 15, 8, 5));
+        buttonPanel.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+        JLabel iconLabel = new JLabel(icon);
+        iconLabel.setFont(new Font("Segoe UI", Font.PLAIN, 18));
+        iconLabel.setForeground(Color.WHITE);
+        iconLabel.setBorder(new EmptyBorder(0, 0, 0, 10));
+
+        JLabel textLabel = new JLabel(text);
+        textLabel.setFont(MENU_FONT);
+        textLabel.setForeground(Color.WHITE);
+
+        JPanel content = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
+        content.setOpaque(false);
+        content.add(iconLabel);
+        content.add(textLabel);
+
+        buttonPanel.add(content, BorderLayout.CENTER);
+
+        JPanel indicatorPanel = new JPanel();
+        indicatorPanel.setPreferredSize(new Dimension(4, 50));
+        indicatorPanel.setBackground(MENU_COLOR);
+        buttonPanel.add(indicatorPanel, BorderLayout.WEST);
+
+        buttonPanel.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                if (activeButtonIndex != index) buttonPanel.setBackground(MENU_HOVER_COLOR);
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                if (activeButtonIndex != index) {
+                    buttonPanel.setBackground(MENU_COLOR);
+                    indicatorPanel.setBackground(MENU_COLOR);
+                }
+            }
+
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                activeButtonIndex = index;
+                updateMenuSelection();
+
+                switch (text) {
+                    case "Mon Profil":
+                        showPanel(new ProfilePanel(index)); // Remplacer par new ProfilePanel(clientId)
+                        break;
+                    case "Paiement":
+                        showPanel(new PaymentPanel()); // Remplacer par new PaiementPanel(clientId)
+                        break;
+                    case "Mes Factures":
+                        showPanel(new FacturesPanel(index)); // Remplacer par new FactureClientPanel(clientId)
+                        break;
+                    case "Notifications":
+                        showPanel(new NotificationsPanel()); // Remplacer par new NotificationClientPanel(clientId)
+                        break;
+                    case "Déconnexion":
+                        handleLogout();
+                        break;
+                }
+            }
+        });
+
+        return buttonPanel;
+    }
+
+    private void updateMenuSelection() {
+        for (int i = 0; i < menuPanel.getComponentCount(); i++) {
+            Component c = menuPanel.getComponent(i);
+            if (c instanceof JPanel && c.getPreferredSize().height == 50) {
+                JPanel item = (JPanel) c;
+                JPanel indicator = (JPanel) item.getComponent(1);
+
+                int buttonIndex = i;
+                if (buttonIndex == activeButtonIndex) {
+                    item.setBackground(MENU_HOVER_COLOR);
+                    indicator.setBackground(MAIN_COLOR);
+                } else {
+                    item.setBackground(MENU_COLOR);
+                    indicator.setBackground(MENU_COLOR);
+                }
+            }
+        }
+    }
+
+    private void showPanel(JPanel panel) {
+        contentPanel.removeAll();
+        contentPanel.add(panel, BorderLayout.CENTER);
+        contentPanel.revalidate();
+        contentPanel.repaint();
+    }
+
+    private JPanel createWelcomePanel() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBackground(BACKGROUND_COLOR);
+
+        JLabel label = new JLabel("Bienvenue sur votre tableau de bord", SwingConstants.CENTER);
+        label.setFont(new Font("Segoe UI", Font.BOLD, 35)); // Augmentation de la taille
+        label.setForeground(DARK_MAIN_COLOR);
+
+        panel.add(label, BorderLayout.CENTER);
+        return panel;
+    }
+
+    private void handleLogout() {
+        int result = JOptionPane.showConfirmDialog(
+            this,
+            "Voulez-vous vous déconnecter ?",
+            "Confirmation",
+            JOptionPane.YES_NO_OPTION
+        );
+        if (result == JOptionPane.YES_OPTION) {
+            dispose();
+            // new LoginFrame();
+        }
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> new ClientDashboard(1));
+    }
+}
