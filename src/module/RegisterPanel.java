@@ -311,7 +311,7 @@ public class RegisterPanel extends JPanel {
 
         try {
             // Appel à la méthode de la classe AjouteBD
-            AjouteBD.Ajouteruser(id, nom, prenom, email, password, "U", adresse); // type = "U" pour user
+            AjouteBD.Ajouteruser(id, nom, prenom,Integer.parseInt(compteur), email, password,Integer.parseInt(telephone), "U", adresse); // type = "U" pour user
             JOptionPane.showMessageDialog(this, "Inscription réussie !", "Succès", JOptionPane.INFORMATION_MESSAGE);
            
         } catch (Exception e) {

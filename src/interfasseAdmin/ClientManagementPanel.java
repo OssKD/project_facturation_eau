@@ -7,6 +7,7 @@ import javax.swing.table.JTableHeader;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.io.ObjectInputFilter.Config;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -14,6 +15,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Vector;
 
+import Config.AjouteBD;
+import Config.Delete;
+import Config.ModifierBD;
 public class ClientManagementPanel extends JPanel {
     private JTextField searchField;
     private JButton searchButton, addButton, updateButton, deleteButton;
@@ -117,19 +121,20 @@ public class ClientManagementPanel extends JPanel {
 
         return panel;
     }
+   
     private JPanel createTablePanel() {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBackground(Color.WHITE);
         panel.setBorder(BorderFactory.createLineBorder(new Color(220, 220, 220), 1));
 
         // Modèle de table avec colonnes
-        tableModel = new DefaultTableModel(new String[]{"ID", "Nom", "Email", "Compteur", "Téléphone", "Adresse"}, 0) {
+        tableModel = new DefaultTableModel(new String[]{"ID", "Nom", "Prenom", "Compteur", "Email", "Password", "Téléphone", "Adresse" }, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
                 return false; // Rendre toutes les cellules non éditables
             }
         };
-        
+
         clientTable = new JTable(tableModel);
         clientTable.setRowHeight(30);
         clientTable.setFont(NORMAL_FONT);
@@ -138,48 +143,46 @@ public class ClientManagementPanel extends JPanel {
         clientTable.setShowGrid(false);
         clientTable.setIntercellSpacing(new Dimension(0, 0));
         clientTable.setFillsViewportHeight(true);
-        
-        // Style de l'en-tête du tableau///////////////////////
+
+        // Style de l'en-tête du tableau
         JTableHeader header = clientTable.getTableHeader();
         header.setFont(new Font("Segoe UI", Font.BOLD, 12));
         header.setBackground(TABLE_HEADER_COLOR);
-        header.setForeground(Color.darkGray
-        		);
+        header.setForeground(Color.DARK_GRAY);
         header.setPreferredSize(new Dimension(header.getWidth(), 35));
         header.setBorder(BorderFactory.createEmptyBorder());
-        
-        // Largeurs des colonnes
-        clientTable.getColumnModel().getColumn(0).setPreferredWidth(50); // ID
-        clientTable.getColumnModel().getColumn(1).setPreferredWidth(150); // Nom
-        clientTable.getColumnModel().getColumn(2).setPreferredWidth(150); // Email
-        clientTable.getColumnModel().getColumn(3).setPreferredWidth(100); // Compteur
-        clientTable.getColumnModel().getColumn(4).setPreferredWidth(120); // Téléphone
-        clientTable.getColumnModel().getColumn(5).setPreferredWidth(200); // Adresse
-        
+
+        // Largeurs des colonnes (ajustées)
+        clientTable.getColumnModel().getColumn(0).setPreferredWidth(50);  // ID
+        clientTable.getColumnModel().getColumn(1).setPreferredWidth(100); // Nom
+        clientTable.getColumnModel().getColumn(2).setPreferredWidth(100); // Prenom
+        clientTable.getColumnModel().getColumn(3).setPreferredWidth(80);  // Compteur
+        clientTable.getColumnModel().getColumn(4).setPreferredWidth(150); // Email
+        clientTable.getColumnModel().getColumn(5).setPreferredWidth(100); // Password
+        clientTable.getColumnModel().getColumn(6).setPreferredWidth(100); // Téléphone
+        clientTable.getColumnModel().getColumn(7).setPreferredWidth(200); // Adresse
+
         JScrollPane scrollPane = new JScrollPane(clientTable);
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
-        scrollPane.getViewport().setBackground(Color.BLACK);
-        
+        scrollPane.getViewport().setBackground(Color.WHITE); // Remplacé noir par blanc
+
         panel.add(scrollPane, BorderLayout.CENTER);
-        
-        // Ajout d'un panneau d'informations en bas du tableau
+
+        // Panneau d'informations
         JPanel infoPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         infoPanel.setBackground(new Color(240, 240, 240));
         infoPanel.setBorder(new EmptyBorder(5, 10, 10, 10));
-        
+
         JLabel infoLabel = new JLabel("Sélectionnez un client pour le modifier ou le supprimer");
         infoLabel.setFont(new Font("Segoe UI", Font.ITALIC, 12));
         infoLabel.setForeground(new Color(1, 100, 100));
         infoPanel.add(infoLabel);
-        
+
         panel.add(infoPanel, BorderLayout.SOUTH);
-        
+
         return panel;
     }
 
-    
-    
-    
     /////pour les bottone cherche et modiger et ajouuter
     
     private JPanel createButtonPanel() {
@@ -248,9 +251,9 @@ public class ClientManagementPanel extends JPanel {
             // Chargement du pilote JDBC (peut être nécessaire pour certaines configurations)
             Class.forName("com.mysql.cj.jdbc.Driver");
             
-            try (Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/gestion_eau", "root", "");
+            try (Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/javaswing_app", "root", "");
                  PreparedStatement stmt = conn.prepareStatement(
-                         "SELECT * FROM clients WHERE compteur LIKE ?")) {
+                         "SELECT * FROM user WHERE nom like ?")) {
 
                 stmt.setString(1, "%" + keyword + "%");
                 ResultSet rs = stmt.executeQuery();
@@ -258,12 +261,14 @@ public class ClientManagementPanel extends JPanel {
                 tableModel.setRowCount(0); // Vider la table
                 while (rs.next()) {
                     Vector<String> row = new Vector<>();
-                    row.add(rs.getString("id"));
-                    row.add(rs.getString("nom"));
-                    row.add(rs.getString("email"));
-                    row.add(rs.getString("compteur"));
-                    row.add(rs.getString("telephone"));
-                    row.add(rs.getString("adresse"));
+                    row.add(rs.getString("id_user"));     // ID
+                    row.add(rs.getString("nom"));         // Nom
+                    row.add(rs.getString("prenom"));      // Prénom
+                    row.add(rs.getString("numero_compteur"));    // Compteur
+                    row.add(rs.getString("email"));       // Email
+                    row.add(rs.getString("password"));    // Password
+                    row.add(rs.getString("tel"));   // Téléphone
+                    row.add(rs.getString("adress_h")); 
                     tableModel.addRow(row);
                 }
 
@@ -277,255 +282,236 @@ public class ClientManagementPanel extends JPanel {
         }
     }
 
-    // Ajouter un client avec interface améliorée    clieeeeeeeeeeeeeeeeeeeeeeeeeeeeeent 
-    private void ajouterClient() {
-        // Création des champs de formulaire avec style
-        JTextField nomField = createStyledTextField();
-        JTextField emailField = createStyledTextField();
-        JTextField compteurField = createStyledTextField();
-        JTextField telField = createStyledTextField();
-        JTextField adresseField = createStyledTextField();
+	// Ajouter un client avec interface améliorée    clieeeeeeeeeeeeeeeeeeeeeeeeeeeeeent 
+	private void ajouterClient() {
+	    // Création des champs de formulaire avec style
+	JTextField nomField = createStyledTextField();
+	JTextField prenomField = createStyledTextField(); // champ Prénom
+	JTextField emailField = createStyledTextField();
+	JPasswordField password = createStyledPasswordField(); // champ Mot de passe
+	JTextField compteurField = createStyledTextField();
+	JTextField telField = createStyledTextField();
+	JTextField adresseField = createStyledTextField();
+	
+	// Création du panel de formulaire
+	JPanel formPanel = new JPanel(new GridBagLayout());
+	GridBagConstraints gbc = new GridBagConstraints();
+	gbc.insets = new Insets(2, 4, 4, 4);
+	gbc.fill = GridBagConstraints.HORIZONTAL;
+	gbc.weightx = 1.0;
+	
+	// Ligne 1: Nom
+	gbc.gridx = 0;
+	gbc.gridy = 0;
+	formPanel.add(new JLabel("Nom:"), gbc);
+	gbc.gridx = 1;
+	formPanel.add(nomField, gbc);
+	
+	// Ligne 2: Prénom
+	gbc.gridx = 0;
+	gbc.gridy = 1;
+	formPanel.add(new JLabel("Prénom:"), gbc);
+	gbc.gridx = 1;
+	formPanel.add(prenomField, gbc);
+	
+	// Ligne 3: Email
+	gbc.gridx = 0;
+	gbc.gridy = 2;
+	formPanel.add(new JLabel("Email:"), gbc);
+	gbc.gridx = 1;
+	formPanel.add(emailField, gbc);
+	
+	// Ligne 4: Mot de passe
+	gbc.gridx = 0;
+	gbc.gridy = 3;
+	formPanel.add(new JLabel("Mot de passe:"), gbc);
+	gbc.gridx = 1;
+	formPanel.add(password, gbc);
+	
+	// Ligne 5: Compteur
+	gbc.gridx = 0;
+	gbc.gridy = 4;
+	formPanel.add(new JLabel("Compteur:"), gbc);
+	gbc.gridx = 1;
+	formPanel.add(compteurField, gbc);
+	
+	// Ligne 6: Téléphone
+	gbc.gridx = 0;
+	gbc.gridy = 5;
+	formPanel.add(new JLabel("Téléphone:"), gbc);
+	gbc.gridx = 1;
+	formPanel.add(telField, gbc);
+	
+	// Ligne 7: Adresse
+	gbc.gridx = 0;
+	gbc.gridy = 6;
+	formPanel.add(new JLabel("Adresse:"), gbc);
+	gbc.gridx = 1;
+	formPanel.add(adresseField, gbc);
+	
+	// Affichage de la boîte de dialogue
+	JOptionPane optionPane = new JOptionPane(formPanel, JOptionPane.PLAIN_MESSAGE, JOptionPane.OK_CANCEL_OPTION);
+	JDialog dialog = optionPane.createDialog(this, "Ajouter un nouveau client");
+	dialog.setSize(400, 400);
+	dialog.setLocationRelativeTo(this);
+	dialog.setVisible(true);
+	
+	// Traitement de la réponse
+	Object selectedValue = optionPane.getValue();
+	if (selectedValue != null && (Integer) selectedValue == JOptionPane.OK_OPTION) {
+	  
+	        if (nomField.getText().trim().isEmpty() || compteurField.getText().trim().isEmpty()) {
+	            showErrorDialog("Champs obligatoires", "Le nom et le numéro de compteur sont obligatoires.");
+	            return;
+	        }
+	
+	        String nom=nomField.getText();
+	        String prenom=prenomField.getText();
+	        String pas=password.getText();
+	        String email =emailField.getText();
+	        int numero_compteur=Integer.parseInt(compteurField.getText());
+	        int tel=Integer.parseInt(telField.getText());
+	        String addres=adresseField.getText();
+	        AjouteBD.Ajouteruser(0, nom,prenom,numero_compteur,email,pas ,tel,"u",addres);
+	    
+	    }
+	} 
 
-        // Création du panel de formulaire
-        JPanel formPanel = new JPanel();
-        formPanel.setLayout(new GridBagLayout());
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(2, 4, 4, 4);
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        
-        // Ligne 1: Nom
-        gbc.gridx = 0;
-        gbc.gridy = 0;
-        formPanel.add(new JLabel("Nom:"), gbc);
-        
-        gbc.gridx = 1;
-        gbc.weightx = 1.0;
-        formPanel.add(nomField, gbc);
-        
-        // Ligne 2: Email
-        gbc.gridx = 0;
-        gbc.gridy = 1;
-        gbc.weightx = 0.0;
-        formPanel.add(new JLabel("Email:"), gbc);
-        
-        gbc.gridx = 1;
-        gbc.weightx = 1.0;
-        formPanel.add(emailField, gbc);
-        
-        // Ligne 3: Compteur
-        gbc.gridx = 0;
-        gbc.gridy = 2;
-        gbc.weightx = 0.0;
-        formPanel.add(new JLabel("Compteur:"), gbc);
-        
-        gbc.gridx = 1;
-        gbc.weightx = 1.0;
-        formPanel.add(compteurField, gbc);
-        
-        // Ligne 4: Téléphone
-        gbc.gridx = 0;
-        gbc.gridy = 3;
-        gbc.weightx = 0.0;
-        formPanel.add(new JLabel("Téléphone:"), gbc);
-        
-        gbc.gridx = 1;
-        gbc.weightx = 1.0;
-        formPanel.add(telField, gbc);
-        
-        // Ligne 5: Adresse
-        gbc.gridx = 0;
-        gbc.gridy = 4;
-        gbc.weightx = 0.0;
-        formPanel.add(new JLabel("Adresse:"), gbc);
-        
-        gbc.gridx = 1;
-        gbc.weightx = 1.0;
-        formPanel.add(adresseField, gbc);
-
-        // Configurer la boîte de dialogue
-        JOptionPane optionPane = new JOptionPane(
-                formPanel,
-                JOptionPane.PLAIN_MESSAGE,
-                JOptionPane.OK_CANCEL_OPTION
-        );
-        JDialog dialog = optionPane.createDialog(this, "Ajouter un nouveau client");
-        dialog.setSize(400, 300);
-        dialog.setLocationRelativeTo(this);
-        dialog.setVisible(true);
-
-        // Traitement de la réponse
-        Object selectedValue = optionPane.getValue();
-        if (selectedValue != null && (Integer) selectedValue == JOptionPane.OK_OPTION) {
-            // Insertion du client dans la base de données
-            try {
-                // Vérifier que les champs obligatoires sont remplis
-                if (nomField.getText().trim().isEmpty() || compteurField.getText().trim().isEmpty()) {
-                    showErrorDialog("Champs obligatoires", "Le nom et le numéro de compteur sont obligatoires.");
-                    return;
-                }
-                
-                // Chargement du pilote JDBC
-                Class.forName("com.mysql.cj.jdbc.Driver");
-                
-                try (Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/gestion_eau", "root", "");
-                     PreparedStatement stmt = conn.prepareStatement(
-                             "INSERT INTO clients (nom, email, compteur, telephone, adresse, mot_de_passe) VALUES (?, ?, ?, ?, ?, '1234')")) {
-                    stmt.setString(1, nomField.getText());
-                    stmt.setString(2, emailField.getText());
-                    stmt.setString(3, compteurField.getText());
-                    stmt.setString(4, telField.getText());
-                    stmt.setString(5, adresseField.getText());
-                    stmt.executeUpdate();
-                    
-                    // Notification de succès
-                    showSuccessDialog("Client ajouté avec succès !");
-                    loadClients("");  // Recharge la liste des clients
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                    showErrorDialog("Erreur d'ajout", "Impossible d'ajouter le client : " + e.getMessage());
-                }
-            } catch (ClassNotFoundException e) {
-                e.printStackTrace();
-                showErrorDialog("Erreur de pilote", "Pilote MySQL non trouvé");
-            }
-        }
-    }
-
-    // Modifier un client avec interface améliorée
+	// Modifier un client avec interface améliorée
     private void modifierClient() {
-        int selected = clientTable.getSelectedRow();
-        if (selected == -1) {
-            showWarningDialog("Aucune sélection", "Veuillez sélectionner un client à modifier.");
-            return;
-        }
+    int selected = clientTable.getSelectedRow();
+    if (selected == -1) {
+        showWarningDialog("Aucune sélection", "Veuillez sélectionner un client à modifier.");
+        return;
+    }
 
-        String id = tableModel.getValueAt(selected, 0).toString();
-        String nom = tableModel.getValueAt(selected, 1).toString();
-        String email = tableModel.getValueAt(selected, 2).toString();
-        String compteur = tableModel.getValueAt(selected, 3).toString();
-        String tel = tableModel.getValueAt(selected, 4).toString();
-        String adresse = tableModel.getValueAt(selected, 5).toString();
+    String id = tableModel.getValueAt(selected, 0).toString();
+    String nom = tableModel.getValueAt(selected, 1).toString();
+    String prenom =tableModel.getValueAt(selected, 2).toString();
+    String compteur = tableModel.getValueAt(selected, 3).toString();
+    String email = tableModel.getValueAt(selected, 4).toString();
+    String password = tableModel.getValueAt(selected, 5).toString();
+    String tel = tableModel.getValueAt(selected, 6).toString();
+    String type = "u"; // À récupérer ou à gérer manuellement
+    String adresse = tableModel.getValueAt(selected, 7).toString();
 
-        // Création des champs avec valeurs existantes
-        JTextField nomField = createStyledTextField();
-        nomField.setText(nom);
-        
-        JTextField emailField = createStyledTextField();
-        emailField.setText(email);
-        
-        JTextField compteurField = createStyledTextField();
-        compteurField.setText(compteur);
-        
-        JTextField telField = createStyledTextField();
-        telField.setText(tel);
-        
-        JTextField adresseField = createStyledTextField();
-        adresseField.setText(adresse);
+    JTextField nomField = createStyledTextField();
+    nomField.setText(nom);
 
-        // Création du panel de formulaire
-        JPanel formPanel = new JPanel();
-        formPanel.setLayout(new GridBagLayout());
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(5, 4, 5, 5);
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        
-        // Ligne 1: Nom
-        gbc.gridx = 0;
-        gbc.gridy = 0;
-        formPanel.add(new JLabel("Nom:"), gbc);
-        
-        gbc.gridx = 1;
-        gbc.weightx = 1.0;
-        formPanel.add(nomField, gbc);
-        
-        // Ligne 2: Email
-        gbc.gridx = 0;
-        gbc.gridy = 1;
-        gbc.weightx = 0.0;
-        formPanel.add(new JLabel("Email:"), gbc);
-        
-        gbc.gridx = 1;
-        gbc.weightx = 1.0;
-        formPanel.add(emailField, gbc);
-        
-        // Ligne 3: Compteur
-        gbc.gridx = 0;
-        gbc.gridy = 2;
-        gbc.weightx = 0.0;
-        formPanel.add(new JLabel("Compteur:"), gbc);
-        
-        gbc.gridx = 1;
-        gbc.weightx = 1.0;
-        formPanel.add(compteurField, gbc);
-        
-        // Ligne 4: Téléphone
-        gbc.gridx = 0;
-        gbc.gridy = 3;
-        gbc.weightx = 0.0;
-        formPanel.add(new JLabel("Téléphone:"), gbc);
-        
-        gbc.gridx = 1;
-        gbc.weightx = 1.0;
-        formPanel.add(telField, gbc);
-        
-        // Ligne 5: Adresse
-        gbc.gridx = 0;
-        gbc.gridy = 4;
-        gbc.weightx = 0.0;
-        formPanel.add(new JLabel("Adresse:"), gbc);
-        
-        gbc.gridx = 1;
-        gbc.weightx = 1.0;
-        formPanel.add(adresseField, gbc);
+    JTextField prenomField = createStyledTextField();
+    prenomField.setText(prenom);
 
-        // Configurer la boîte de dialogue
-        JOptionPane optionPane = new JOptionPane(
-                formPanel,
-                JOptionPane.PLAIN_MESSAGE,
-                JOptionPane.OK_CANCEL_OPTION
-        );
-        JDialog dialog = optionPane.createDialog(this, "Modifier le client");
-        dialog.setSize(400, 300);
-        dialog.setLocationRelativeTo(this);
-        dialog.setVisible(true);
+    JTextField compteurField = createStyledTextField();
+    compteurField.setText(compteur);
 
-        // Traitement de la réponse
-        Object selectedValue = optionPane.getValue();
-        if (selectedValue != null && (Integer) selectedValue == JOptionPane.OK_OPTION) {
-            try {
-                // Vérifier que les champs obligatoires sont remplis
-                if (nomField.getText().trim().isEmpty() || compteurField.getText().trim().isEmpty()) {
-                    showErrorDialog("Champs obligatoires", "Le nom et le numéro de compteur sont obligatoires.");
-                    return;
-                }
-                
-                // Chargement du pilote JDBC
-                Class.forName("com.mysql.cj.jdbc.Driver");
-                
-                try (Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/gestion_eau", "root", "");
-                     PreparedStatement stmt = conn.prepareStatement(
-                             "UPDATE clients SET nom=?, email=?, compteur=?, telephone=?, adresse=? WHERE id=?")) {
-                    stmt.setString(1, nomField.getText());
-                    stmt.setString(2, emailField.getText());
-                    stmt.setString(3, compteurField.getText());
-                    stmt.setString(4, telField.getText());
-                    stmt.setString(5, adresseField.getText());
-                    stmt.setInt(6, Integer.parseInt(id));
-                    stmt.executeUpdate();
-                    
-                    // Notification de succès
-                    showSuccessDialog("Client modifié avec succès !");
-                    loadClients("");  // Recharge la liste des clients
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                    showErrorDialog("Erreur de modification", "Impossible de modifier le client : " + e.getMessage());
-                }
-            } catch (ClassNotFoundException e) {
-                e.printStackTrace();
-                showErrorDialog("Erreur de pilote", "Pilote MySQL non trouvé");
+    JTextField emailField = createStyledTextField();
+    emailField.setText(email);
+
+    JTextField passwordField = createStyledTextField();
+    passwordField.setText(password);
+
+    JTextField telField = createStyledTextField();
+    telField.setText(tel);
+
+    JTextField typeField = createStyledTextField();
+    typeField.setText(type);
+
+    JTextField adresseField = createStyledTextField();
+    adresseField.setText(adresse);
+
+	// Création du panel de formulaire
+	JPanel formPanel = new JPanel(new GridBagLayout());
+	GridBagConstraints gbc = new GridBagConstraints();
+	gbc.insets = new Insets(2, 4, 4, 4);
+	gbc.fill = GridBagConstraints.HORIZONTAL;
+	gbc.weightx = 1.0;
+	
+	// Ligne 1: Nom
+	gbc.gridx = 0;
+	gbc.gridy = 0;
+	formPanel.add(new JLabel("Nom:"), gbc);
+	gbc.gridx = 1;
+	formPanel.add(nomField, gbc);
+	
+	// Ligne 2: Prénom
+	gbc.gridx = 0;
+	gbc.gridy = 1;
+	formPanel.add(new JLabel("Prénom:"), gbc);
+	gbc.gridx = 1;
+	formPanel.add(prenomField, gbc);
+	
+	// Ligne 3: Email
+	gbc.gridx = 0;
+	gbc.gridy = 2;
+	formPanel.add(new JLabel("Email:"), gbc);
+	gbc.gridx = 1;
+	formPanel.add(emailField, gbc);
+	
+	// Ligne 4: Mot de passe
+	gbc.gridx = 0;
+	gbc.gridy = 3;
+	formPanel.add(new JLabel("Mot de passe:"), gbc);
+	gbc.gridx = 1;
+	formPanel.add(passwordField, gbc);
+	
+	// Ligne 5: Compteur
+	gbc.gridx = 0;
+	gbc.gridy = 4;
+	formPanel.add(new JLabel("Compteur:"), gbc);
+	gbc.gridx = 1;
+	formPanel.add(compteurField, gbc);
+	
+	// Ligne 6: Téléphone
+	gbc.gridx = 0;
+	gbc.gridy = 5;
+	formPanel.add(new JLabel("Téléphone:"), gbc);
+	gbc.gridx = 1;
+	formPanel.add(telField, gbc);
+	
+	// Ligne 7: Adresse
+	gbc.gridx = 0;
+	gbc.gridy = 6;
+	formPanel.add(new JLabel("Adresse:"), gbc);
+	gbc.gridx = 1;
+	formPanel.add(adresseField, gbc);
+	
+	// Affichage de la boîte de dialogue
+		JOptionPane optionPane = new JOptionPane(formPanel, JOptionPane.PLAIN_MESSAGE, JOptionPane.OK_CANCEL_OPTION);
+		JDialog dialog = optionPane.createDialog(this, "Modifier le client");
+		dialog.setSize(400, 400);
+		dialog.setLocationRelativeTo(this);
+		dialog.setVisible(true);
+  
+
+    Object selectedValue = optionPane.getValue();
+    if (selectedValue != null && (Integer) selectedValue == JOptionPane.OK_OPTION) {
+        try {
+            if (nomField.getText().trim().isEmpty() || compteurField.getText().trim().isEmpty()) {
+                showErrorDialog("Champs obligatoires", "Le nom et le numéro de compteur sont obligatoires.");
+                return;
             }
+
+            // Appel à la méthode de mise à jour dans ModifierBD
+            ModifierBD.updateuser(
+                    Integer.parseInt(id),
+                    nomField.getText(),
+                    prenomField.getText(),
+                    Integer.parseInt(compteurField.getText()),
+                    emailField.getText(),
+                    passwordField.getText(),
+                    Integer.parseInt(telField.getText()),
+                    typeField.getText(),
+                    adresseField.getText()
+            );
+
+            showSuccessDialog("Client modifié avec succès !");
+            loadClients("");  // Recharge la liste
+
+        } catch (NumberFormatException e) {
+            showErrorDialog("Erreur de format", "Assurez-vous que le numéro de compteur et le téléphone sont des nombres valides.");
         }
     }
+}
 
     // Supprimer un client avec confirmation améliorée
     private void supprimerClient() {
@@ -567,26 +553,7 @@ public class ClientManagementPanel extends JPanel {
         );
 
         if (result == JOptionPane.YES_OPTION) {
-            try {
-                // Chargement du pilote JDBC
-                Class.forName("com.mysql.cj.jdbc.Driver");
-                
-                try (Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/gestion_eau", "root", "");
-                     PreparedStatement stmt = conn.prepareStatement("DELETE FROM clients WHERE id=?")) {
-                    stmt.setInt(1, Integer.parseInt(id));
-                    stmt.executeUpdate();
-                    
-                    // Notification de succès
-                    showSuccessDialog("Client supprimé avec succès !");
-                    loadClients("");  // Recharge la liste des clients
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                    showErrorDialog("Erreur de suppression", "Impossible de supprimer le client : " + e.getMessage());
-                }
-            } catch (ClassNotFoundException e) {
-                e.printStackTrace();
-                showErrorDialog("Erreur de pilote", "Pilote MySQL non trouvé");
-            }
+            	Delete.Deleteuser(Integer.parseInt(id));  
         }
     }
     
@@ -601,7 +568,17 @@ public class ClientManagementPanel extends JPanel {
         ));
         return textField;
     }
-    
+ 
+    private JPasswordField createStyledPasswordField() {
+        JPasswordField passwordField = new JPasswordField();
+        passwordField.setFont(NORMAL_FONT);
+        passwordField.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(20, 20, 200)),
+                BorderFactory.createEmptyBorder(8, 10, 8, 10)
+        ));
+        return passwordField;
+    }
+
     private void showSuccessDialog(String message) {
         JPanel panel = new JPanel(new BorderLayout(10, 0));
         

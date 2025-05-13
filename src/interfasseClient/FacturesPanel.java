@@ -3,12 +3,11 @@ package interfasseClient;
 import java.awt.*;
 import java.awt.event.*;
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.List;
 import javax.swing.*;
 import javax.swing.table.*;
+import java.util.*;
 
-import Config.PaymentForm; // pour accéder à PaymentForm
+import Config.PaymentForm;
 
 public class FacturesPanel extends JPanel {
     private JTable facturesTable;
@@ -16,8 +15,9 @@ public class FacturesPanel extends JPanel {
     private JButton filterButton, payerButton;
     private DefaultTableModel tableModel;
     private int id_user;
+
     public FacturesPanel(int id) {
-    	this.id_user=id;
+        this.id_user = id;
         setLayout(new BorderLayout());
 
         // Panel de filtrage
@@ -34,24 +34,18 @@ public class FacturesPanel extends JPanel {
 
         add(filterPanel, BorderLayout.NORTH);
 
-        // Table avec une colonne checkbox
+        // Table sans checkbox
         tableModel = new DefaultTableModel(
-            new Object[]{"Sélectionner", "id_facture", "Mois", "Montant", "Statut", "Télécharger"}, 0
+            new Object[]{"id_facture", "Mois", "Montant", "Statut", "Télécharger"}, 0
         ) {
             @Override
-            public Class<?> getColumnClass(int columnIndex) {
-                if (columnIndex == 0) return Boolean.class; // Première colonne : checkbox
-                return super.getColumnClass(columnIndex);
-            }
-
-            @Override
             public boolean isCellEditable(int row, int column) {
-                return column == 0 || column == 5; // Seulement la case à cocher et le bouton Télécharger sont éditables
+                return column == 4; // Seulement le bouton Télécharger est éditable
             }
         };
 
         facturesTable = new JTable(tableModel);
-        facturesTable.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+        facturesTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION); // sélection simple par ligne
 
         // Ajouter les boutons "Télécharger"
         facturesTable.getColumn("Télécharger").setCellRenderer(new ButtonRenderer());
@@ -69,20 +63,21 @@ public class FacturesPanel extends JPanel {
     }
 
     private void loadFacturesData(int id) {
-    	String sql ="SELECT * FROM facture where id_user=?";
-    	
+        String sql = "SELECT * FROM facture WHERE id_user = ?";
+
         try (Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/javaswing_app", "root", "");
-        		 PreparedStatement stmt = conn.prepareStatement(sql)) {
-        	
-			stmt.setInt(1, id );
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, id);
             ResultSet rs = stmt.executeQuery();
-            tableModel.setRowCount(0); // Clear existing
+            tableModel.setRowCount(0);
+
             while (rs.next()) {
                 int id_facture = rs.getInt("id_facture");
                 String mois = rs.getString("mois");
                 double montant = rs.getDouble("montant");
                 String statut = rs.getString("moitie");
-                tableModel.addRow(new Object[]{false, id_facture, mois, montant, statut, "Télécharger"});
+                tableModel.addRow(new Object[]{id_facture, mois, montant, statut, "Télécharger"});
             }
 
         } catch (SQLException ex) {
@@ -93,12 +88,13 @@ public class FacturesPanel extends JPanel {
 
     private void filterFactures() {
         String filterMonth = filterMonthField.getText().trim();
-        String query = "SELECT * FROM facture WHERE mois LIKE ?";
+        String query = "SELECT * FROM facture WHERE mois LIKE ? AND id_user = ?";
 
         try (Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/javaswing_app", "root", "");
              PreparedStatement stmt = conn.prepareStatement(query)) {
 
             stmt.setString(1, "%" + filterMonth + "%");
+            stmt.setInt(2, id_user);
             ResultSet rs = stmt.executeQuery();
 
             tableModel.setRowCount(0);
@@ -107,7 +103,7 @@ public class FacturesPanel extends JPanel {
                 String mois = rs.getString("mois");
                 double montant = rs.getDouble("montant");
                 String statut = rs.getString("moitie");
-                tableModel.addRow(new Object[]{false, id_facture, mois, montant, statut, "Télécharger"});
+                tableModel.addRow(new Object[]{id_facture, mois, montant, statut, "Télécharger"});
             }
 
         } catch (SQLException ex) {
@@ -117,22 +113,15 @@ public class FacturesPanel extends JPanel {
     }
 
     private void payerFactures() {
-        List<Integer> selectedIds = new ArrayList<>();
-
-        for (int i = 0; i < facturesTable.getRowCount(); i++) {
-            Boolean isSelected = (Boolean) facturesTable.getValueAt(i, 0);
-            if (isSelected != null && isSelected) {
-                int id_facture = (int) facturesTable.getValueAt(i, 1); // colonne 1 = id_facture
-                selectedIds.add(id_facture);
-            }
-        }
-
-        if (selectedIds.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Veuillez cocher au moins une facture à payer.");
+        int selectedRow = facturesTable.getSelectedRow();
+        if (selectedRow == -1) {
+            JOptionPane.showMessageDialog(this, "Veuillez sélectionner une facture à payer.");
             return;
         }
 
-        // Simuler l'ouverture du formulaire de paiement
+        int id_facture = (int) facturesTable.getValueAt(selectedRow, 0); // colonne 0 = id_facture
+
+        // Ouvrir le formulaire de paiement
         PaymentForm payer = new PaymentForm();
         payer.setVisible(true);
     }
@@ -163,7 +152,7 @@ public class FacturesPanel extends JPanel {
                 public void actionPerformed(ActionEvent e) {
                     fireEditingStopped();
                     try {
-                        int id_facture = (int) facturesTable.getValueAt(selectedRow, 1); // id_facture = colonne 1 maintenant
+                        int id_facture = (int) facturesTable.getValueAt(selectedRow, 0);
                         downloadPDF(id_facture);
                         JOptionPane.showMessageDialog(null, "Facture " + id_facture + " téléchargée avec succès !");
                     } catch (SQLException ex) {
@@ -189,7 +178,7 @@ public class FacturesPanel extends JPanel {
     }
 
     private void downloadPDF(int id_facture) throws SQLException {
-        PdfGenerator pdfGenerator = new PdfGenerator();
+        FactureEauGenerator pdfGenerator = new FactureEauGenerator();
         pdfGenerator.generatePDF(id_facture);
     }
 }

@@ -30,7 +30,7 @@ public class LoginPanel extends JPanel {
     // Composants pour l'animation d'eau
     private ArrayList<WaterDrop> waterDrops;
     private Timer animationTimer;
-    private final int MAX_DROPS = 30;
+    private final int MAX_DROPS = 30; 
     private final Random random = new Random();
     
     // Couleurs thématiques

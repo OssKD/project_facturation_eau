@@ -2,120 +2,122 @@ package interfasseClient;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.sql.Connection;
-import java.sql.Date;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
+import com.itextpdf.text.*;
+import com.itextpdf.text.pdf.*;
 
-import com.itextpdf.text.BaseColor;
-import com.itextpdf.text.Document;
-import com.itextpdf.text.DocumentException;
-import com.itextpdf.text.Element;
-import com.itextpdf.text.FontFactory;
-import com.itextpdf.text.Paragraph;
-import com.itextpdf.text.pdf.PdfPTable;
-import com.itextpdf.text.pdf.PdfWriter;
+public class FactureEauGenerator {
 
-public class PdfGenerator {
     public void generatePDF(int id_facture) throws SQLException {
         Document document = new Document();
-        
-        // Déclarer les variables ici
-        String nom = "";
-        String email = "";
-        String adress_h = "";
+
+        // Données de la facture
+        String nom = "", email = "", adresse = "";
         double montant = 0;
         Date dateFacture = null;
 
         try {
-            // Vérifier si le dossier existe
-            File dossierFactures = new File("factures");
-            if (!dossierFactures.exists()) {
-                dossierFactures.mkdirs();
-            }
+            File dossier = new File("factures");
+            if (!dossier.exists()) dossier.mkdirs();
 
-            // Connexion à la base de données
+            // Connexion et récupération des données
             try (Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/javaswing_app", "root", "");
-                 PreparedStatement ps = conn.prepareStatement(
-                     "SELECT u.*, f.* FROM user u INNER JOIN facture f ON u.id_user = f.id_user WHERE f.id_facture = ?"
-                 )) {
+                 PreparedStatement ps = conn.prepareStatement("SELECT u.nom, u.email, u.adress_h, f.montant, f.mois FROM user u INNER JOIN facture f ON u.id_user = f.id_user WHERE f.id_facture = ?")) {
 
                 ps.setInt(1, id_facture);
-
-                try (ResultSet rs = ps.executeQuery()) {
-                    if (rs.next()) {
-                        // Récupérer les données de la facture et utilisateur
-                        nom = rs.getString("nom");
-                        email = rs.getString("email");
-                        montant = rs.getDouble("montant");
-                        adress_h = rs.getString("adress_h");
-                        dateFacture = rs.getDate("mois");
-                    } else {
-                        System.out.println("Aucune facture trouvée avec l'ID : " + id_facture);
-                        return; // arrêter la fonction
-                    }
+                ResultSet rs = ps.executeQuery();
+                if (rs.next()) {
+                    nom = rs.getString("nom");
+                    email = rs.getString("email");
+                    adresse = rs.getString("adress_h");
+                    montant = rs.getDouble("montant");
+                    dateFacture = rs.getDate("mois");
+                } else {
+                    System.out.println("Facture introuvable");
+                    return;
                 }
             }
 
-            // Chemin du fichier
-            String cheminFichier = "factures/facture_" + dateFacture + " "+ nom + ".pdf";
-            PdfWriter.getInstance(document, new FileOutputStream(cheminFichier));
+            // Vérifier si dateFacture est null
+            if (dateFacture == null) {
+                System.out.println("Date de facture introuvable.");
+                return; 
+            }
+
+            // Génération du fichier
+            String path = "factures/Facture_" + nom + "_" + dateFacture + ".pdf";
+            PdfWriter.getInstance(document, new FileOutputStream(path));
             document.open();
 
+            // Styles
+            Font titleFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 22, BaseColor.DARK_GRAY);
+            Font labelFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 12);
+            Font normalFont = FontFactory.getFont(FontFactory.HELVETICA, 12);
+
             // Titre
-            Paragraph titre = new Paragraph("FACTURE", FontFactory.getFont(FontFactory.HELVETICA_BOLD, 24, BaseColor.BLACK));
+            Paragraph titre = new Paragraph("FACTURE D'EAU", titleFont);
             titre.setAlignment(Element.ALIGN_CENTER);
+            titre.setSpacingAfter(20);
             document.add(titre);
 
-            // Espace
-            document.add(new Paragraph(" "));
+            // Infos client
+            PdfPTable clientTable = new PdfPTable(2);
+            clientTable.setWidthPercentage(100);
+            clientTable.setSpacingAfter(15);
 
-            // Infos Client
-            document.add(new Paragraph("Client : " +nom ));
-            document.add(new Paragraph("email : " + email)); 
-            document.add(new Paragraph("Adresse : " + adress_h));
+            clientTable.addCell(getCell("Nom du client :", labelFont));
+            clientTable.addCell(getCell(nom, normalFont));
+            clientTable.addCell(getCell("Email :", labelFont));
+            clientTable.addCell(getCell(email, normalFont));
+            clientTable.addCell(getCell("Adresse :", labelFont));
+            clientTable.addCell(getCell(adresse, normalFont));
+            clientTable.addCell(getCell("Date de facturation :", labelFont));
+            clientTable.addCell(getCell(String.valueOf(dateFacture), normalFont));
 
-            // Espace
-            document.add(new Paragraph(" "));
+            document.add(clientTable);
 
-            // Table des articles
-            PdfPTable table = new PdfPTable(3); // 3 colonnes
+            // Détails de la facture
+            PdfPTable table = new PdfPTable(3);
             table.setWidthPercentage(100);
-            table.setSpacingBefore(10f);
-            table.setSpacingAfter(10f);
+            table.setSpacingBefore(10);
+            table.setWidths(new float[]{2f, 4f, 2f});
 
-            // En-têtes
-            table.addCell("id_facture ");
-            table.addCell("mois");
-            table.addCell("montant");
-           
+            table.addCell(getHeaderCell("ID Facture"));
+            table.addCell(getHeaderCell("Mois"));
+            table.addCell(getHeaderCell("Montant (€)"));
 
-            // Contenu (exemple)
-            table.addCell(String.valueOf(id_facture));
+            table.addCell(getCell(String.valueOf(id_facture), normalFont));
+            table.addCell(getCell(String.valueOf(dateFacture), normalFont));
+            table.addCell(getCell(String.format("%.2f", montant), normalFont));
 
-            table.addCell(String.valueOf(dateFacture) );
-            table.addCell(String.valueOf(montant));
-           ;
-
-        
-            // Ajouter la table
             document.add(table);
 
-      
-
             // Footer
-            document.add(new Paragraph(" "));
-            Paragraph merci = new Paragraph("Merci pour votre confiance !");
-            merci.setAlignment(Element.ALIGN_CENTER);
-            document.add(merci);
+            Paragraph footer = new Paragraph("Merci pour votre confiance !", labelFont);
+            footer.setAlignment(Element.ALIGN_CENTER);
+            footer.setSpacingBefore(30);
+            document.add(footer);
 
         } catch (DocumentException | IOException e) {
             e.printStackTrace();
         } finally {
             document.close();
         }
+    }
+
+    private PdfPCell getCell(String text, Font font) {
+        PdfPCell cell = new PdfPCell(new Phrase(text, font));
+        cell.setPadding(8);
+        cell.setBorder(Rectangle.NO_BORDER);
+        return cell;
+    }
+
+    private PdfPCell getHeaderCell(String text) {
+        Font font = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 13, BaseColor.WHITE);
+        PdfPCell cell = new PdfPCell(new Phrase(text, font));
+        cell.setBackgroundColor(new BaseColor(0, 121, 182));
+        cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+        cell.setPadding(8);
+        return cell;
     }
 }

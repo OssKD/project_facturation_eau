@@ -2,6 +2,10 @@ package interfasseAdmin;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+
+import Config.nbrClient;
+import module.LoginPanel;
+
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.MouseAdapter;
@@ -21,6 +25,7 @@ public class AdminDashboard extends JFrame {
     public AdminDashboard() {
         setTitle("Gestion de Facturation d'Eau - ((Administration))");
         setSize(1100, 700);
+        setExtendedState(JFrame.MAXIMIZED_BOTH);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
         setLayout(new BorderLayout());
@@ -83,7 +88,7 @@ public class AdminDashboard extends JFrame {
         menuPanel.setBorder(BorderFactory.createMatteBorder(0, 0, 0, 1, DARK_MAIN_COLOR));
 
         // Logo ou titre en haut du menu
-        JPanel logoPanel = new JPanel(new BorderLayout());
+        JPanel logoPanel = new JPanel(new BorderLayout()); 
         logoPanel.setBackground(DARK_MAIN_COLOR);
         logoPanel.setMaximumSize(new Dimension(220, 80));
         logoPanel.setPreferredSize(new Dimension(220, 80));
@@ -119,80 +124,73 @@ public class AdminDashboard extends JFrame {
         return menuPanel;
     }
 
-    private JPanel createMenuButton(String icon, String text, int index) {
-        JPanel buttonPanel = new JPanel(new BorderLayout());
-        buttonPanel.setBackground(MENU_COLOR);
-        buttonPanel.setMaximumSize(new Dimension(220, 50));
-        buttonPanel.setPreferredSize(new Dimension(220, 50));
-        buttonPanel.setBorder(new EmptyBorder(8, 15, 8, 5));
-        buttonPanel.setCursor(new Cursor(Cursor.HAND_CURSOR));
-
-        JLabel iconLabel = new JLabel(icon);
-        iconLabel.setFont(new Font("Segoe UI", Font.PLAIN, 18));
-        iconLabel.setForeground(Color.WHITE);
-        iconLabel.setBorder(new EmptyBorder(0, 0, 0, 10));
-        
-        JLabel textLabel = new JLabel(text);
-        textLabel.setFont(MENU_FONT);
-        textLabel.setForeground(Color.WHITE);
-
-        JPanel contentPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
-        contentPanel.setOpaque(false);
-        contentPanel.add(iconLabel);
-        contentPanel.add(textLabel);
-        
-        buttonPanel.add(contentPanel, BorderLayout.CENTER);
-
-        // Indicateur de sélection
-        JPanel indicatorPanel = new JPanel();
-        indicatorPanel.setPreferredSize(new Dimension(4, 50));
-        indicatorPanel.setBackground(MENU_COLOR);
-        buttonPanel.add(indicatorPanel, BorderLayout.WEST);
-
-        // Écouteurs d'événements
-        buttonPanel.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseEntered(MouseEvent e) {
-                if (activeButtonIndex != index) {
-                    buttonPanel.setBackground(MENU_HOVER_COLOR);
-                }
+  private JPanel createMenuButton(String icon, String text, int index) {
+    JPanel buttonPanel = new JPanel(new BorderLayout());
+    buttonPanel.setBackground(MENU_COLOR);
+    buttonPanel.setMaximumSize(new Dimension(220, 50));
+    buttonPanel.setPreferredSize(new Dimension(220, 50));
+    buttonPanel.setBorder(new EmptyBorder(8, 15, 8, 5));
+    buttonPanel.setCursor(new Cursor(Cursor.HAND_CURSOR));
+    JLabel iconLabel = new JLabel(icon);
+    iconLabel.setFont(new Font("Segoe UI", Font.PLAIN, 18));
+    iconLabel.setForeground(Color.WHITE);
+    iconLabel.setBorder(new EmptyBorder(0, 0, 0, 10));
+    JLabel textLabel = new JLabel(text);
+    textLabel.setFont(MENU_FONT);
+    textLabel.setForeground(Color.WHITE);
+    JPanel contentPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
+    contentPanel.setOpaque(false);
+    contentPanel.add(iconLabel);
+    contentPanel.add(textLabel);
+    buttonPanel.add(contentPanel, BorderLayout.CENTER);
+    
+    // Indicateur de sélection
+    JPanel indicatorPanel = new JPanel();
+    indicatorPanel.setPreferredSize(new Dimension(4, 50));
+    indicatorPanel.setBackground(MENU_COLOR);
+    buttonPanel.add(indicatorPanel, BorderLayout.WEST);
+    
+    // Écouteurs d'événements
+    buttonPanel.addMouseListener(new MouseAdapter() {
+        @Override
+        public void mouseEntered(MouseEvent e) {
+            if (activeButtonIndex != index) {
+                buttonPanel.setBackground(MENU_HOVER_COLOR);
             }
-
-            @Override
-            public void mouseExited(MouseEvent e) {
-                if (activeButtonIndex != index) {
-                    buttonPanel.setBackground(MENU_COLOR);
-                    indicatorPanel.setBackground(MENU_COLOR);
-                }
+        }
+        @Override
+        public void mouseExited(MouseEvent e) {
+            if (activeButtonIndex != index) {
+                buttonPanel.setBackground(MENU_COLOR);
+                indicatorPanel.setBackground(MENU_COLOR);
             }
-
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                activeButtonIndex = index;
-                updateMenuSelection();
-                
-                // Actions selon le bouton cliqué
-                switch(text) {
-                    case "Gestion Clients":
-                        showPanel(new ClientManagementPanel());
-                        break;
-                    case "Gestion Factures":
-                        showPanel(new FactureManagementPanel());
-                        break;
-                    case "Notifications":
-                        showPanel(new GlobalNotificationsPanel());
-                        break;
-                    case "Déconnexion":
-                        handleLogout();
-                        break;
-                }
+        }
+        @Override
+        public void mouseClicked(MouseEvent e) {
+            activeButtonIndex = index;
+            updateMenuSelection();
+            // Actions selon le bouton cliqué
+            switch(text) {
+                case "Gestion Clients":
+                    showPanel(new ClientManagementPanel());
+                    break;
+                case "Gestion Factures":
+                    showPanel(new FactureManagementPanel());
+                    break;
+                case "Notifications":
+                    showPanel(new GlobalNotificationsPanel());
+                    break;
+                case "Statistiques":
+                    showPanel(createWelcomePanel()); // Afficher le panneau de bienvenue
+                    break;    
+                case "Déconnexion":
+                    handleLogout();
+                    break;
             }
-        });
-
-        return buttonPanel;
-    }
-
-    private void updateMenuSelection() {
+        }
+    });
+    return buttonPanel;
+}  private void updateMenuSelection() {
         // Mise à jour visuelle des boutons du menu
         for (int i = 0; i < menuPanel.getComponentCount(); i++) {
             Component component = menuPanel.getComponent(i);
@@ -213,9 +211,12 @@ public class AdminDashboard extends JFrame {
     }
 
     private JPanel createWelcomePanel() {
+    	int nbr=nbrClient.nbrclient();
+    	int nbr_facture=nbrClient.nbrFacture();
+    	int nbr_facture_Imp=nbrClient.nbrFactureImpayer();
+    	String nbr_mensuel=nbrClient.revenueMensuel();
         JPanel welcomePanel = new JPanel(new BorderLayout());
-        welcomePanel.setBackground(BACKGROUND_COLOR);
-        
+        welcomePanel.setBackground(BACKGROUND_COLOR); 
         JLabel welcomeLabel = new JLabel("Bienvenue dans le système de facturation d'eau", SwingConstants.CENTER);
         welcomeLabel.setFont(new Font("Segoe UI", Font.BOLD, 24));
         welcomeLabel.setForeground(DARK_MAIN_COLOR);
@@ -225,10 +226,10 @@ public class AdminDashboard extends JFrame {
         statsPanel.setBackground(BACKGROUND_COLOR);
         statsPanel.setBorder(new EmptyBorder(50, 100, 50, 100));
         
-        statsPanel.add(createStatCard("Clients", "124", new Color(52, 152, 219)));
-        statsPanel.add(createStatCard("Factures", "56", new Color(231, 76, 60)));
-        statsPanel.add(createStatCard("Factures impayées", "12", new Color(230, 126, 34)));
-        statsPanel.add(createStatCard("Revenus mensuels", "8,450 €", new Color(46, 204, 113)));
+        statsPanel.add(createStatCard("Clients",String.valueOf(nbr), new Color(52, 152, 219)));
+        statsPanel.add(createStatCard("Factures", String.valueOf(nbr_facture), new Color(231, 76, 60)));
+        statsPanel.add(createStatCard("Factures impayées",String.valueOf(nbr_facture_Imp), new Color(230, 126, 34)));
+        statsPanel.add(createStatCard("Revenus mensuels", nbr_mensuel+" dh", new Color(46, 204, 113)));
         
         welcomePanel.add(statsPanel, BorderLayout.CENTER);
         
@@ -265,14 +266,22 @@ public class AdminDashboard extends JFrame {
             JOptionPane.YES_NO_OPTION,
             JOptionPane.QUESTION_MESSAGE
         );
-        
+
         if (response == JOptionPane.YES_OPTION) {
             dispose(); // Fermer la fenêtre actuelle
-            // Ajouter ici le code pour réouvrir la fenêtre de connexion
-            // new LoginFrame();
+
+            // Créer une nouvelle fenêtre avec le LoginPanel
+            JFrame loginFrame = new JFrame("Connexion");
+            loginFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+            loginFrame.setSize(800, 600);
+            loginFrame.setLocationRelativeTo(null);
+            loginFrame.setContentPane(new LoginPanel(loginFrame)); // Passer le frame au panel
+            loginFrame.setVisible(true);
         }
     }
 
+
+    
     private void showPanel(JPanel panel) {
         contentPanel.removeAll();
         contentPanel.add(panel, BorderLayout.CENTER);

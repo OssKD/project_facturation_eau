@@ -9,67 +9,58 @@ import java.text.NumberFormat;
 import java.util.Locale;
 
 public class FactureManagementPanel extends JPanel {
-    // Composants d'interface
+    // Composants de l'interface
     private JTextField compteurField, ancienIndexField, nouvelIndexField, prixUniteField;
     private JComboBox<String> moisComboBox;
     private JButton btnCreer, btnModifier, btnSupprimer, btnPDF;
     private JTable factureTable;
     private DefaultTableModel tableModel;
-    
-    // Constantes pour les couleurs et policest                  title
     private static final Color HEADER_COLOR = new Color(66, 135, 247);
-    private static final Color BUTTON_COLOR = new Color(59, 12, 22);
     private static final Font TITLE_FONT = new Font("Arial", Font.BOLD, 18);
-    
+
     public FactureManagementPanel() {
-        // Configuration du panel principal
         setLayout(new BorderLayout(10, 10));
         setBorder(new EmptyBorder(20, 20, 20, 20));
-        
-        // Titre principal
+
+        // Titre
         JLabel titleLabel = new JLabel("Gestion des Factures d'Eau");
-        titleLabel.setFont(new Font("Arial", Font.BOLD, 18));
+        titleLabel.setFont(TITLE_FONT);
         titleLabel.setForeground(new Color(44, 62, 80));
         titleLabel.setHorizontalAlignment(SwingConstants.CENTER);
         titleLabel.setBorder(new EmptyBorder(0, 0, 15, 0));
         add(titleLabel, BorderLayout.NORTH);
         
-        // Création et ajout des sous-panels
+        // Contenu principal
         JPanel mainContentPanel = new JPanel(new BorderLayout(15, 15));
         mainContentPanel.add(createFormPanel(), BorderLayout.WEST);
         mainContentPanel.add(createTablePanel(), BorderLayout.CENTER);
         add(mainContentPanel, BorderLayout.CENTER);
-        
-        // Charger les données
-        chargerFactures();
+        chargerFactures(); // Charger les factures à l'initialisation
     }
-    
-    // Création du panel de formulaire
+
+    // Panneau de formulaire
     private JPanel createFormPanel() {
         JPanel formPanel = new JPanel(new BorderLayout(0, 10));
         formPanel.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createTitledBorder(BorderFactory.createLineBorder(HEADER_COLOR), 
+            BorderFactory.createTitledBorder(BorderFactory.createLineBorder(HEADER_COLOR),
             "Informations de la Facture", TitledBorder.LEFT, TitledBorder.TOP, TITLE_FONT, HEADER_COLOR),
             new EmptyBorder(10, 10, 10, 10)));
-            
-        // Panel principal pour les champs
+        
         JPanel fieldsPanel = new JPanel(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.insets = new Insets(6, 6, 6, 6);
         
-        // Création des composants
+        // Création des champs de texte
         compteurField = createStyledTextField();
-        
-        String[] mois = {"Janvier", "Février", "Mars", "Avril", "Mai", "Juin", 
-                         "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"};
-        moisComboBox = new JComboBox<>(mois);
-        
         ancienIndexField = createStyledTextField();
         nouvelIndexField = createStyledTextField();
         prixUniteField = createStyledTextField();
         
-        // Ajout des labels et champs avec GridBagLayout
+        // ComboBox pour les mois
+        String[] mois = {"Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"};
+        moisComboBox = new JComboBox<>(mois);
+        
         addLabelAndField(fieldsPanel, "N° Compteur:", compteurField, gbc, 0);
         addLabelAndField(fieldsPanel, "Mois:", moisComboBox, gbc, 1);
         addLabelAndField(fieldsPanel, "Ancien Index:", ancienIndexField, gbc, 2);
@@ -78,10 +69,8 @@ public class FactureManagementPanel extends JPanel {
         
         formPanel.add(fieldsPanel, BorderLayout.CENTER);
         
-        // Panel pour les boutons
+        // Panneau pour les boutons
         JPanel buttonPanel = new JPanel(new GridLayout(1, 4, 10, 0));
-        buttonPanel.setBorder(new EmptyBorder(10, 8, 23, 0));
-        
         btnCreer = createStyledButton("Créer", new Color(23, 76, 60));
         btnModifier = createStyledButton("Modifier", new Color(23, 76, 60));
         btnSupprimer = createStyledButton("Supprimer", new Color(23, 76, 60));
@@ -91,25 +80,22 @@ public class FactureManagementPanel extends JPanel {
         buttonPanel.add(btnModifier);
         buttonPanel.add(btnSupprimer);
         buttonPanel.add(btnPDF);
-        
         formPanel.add(buttonPanel, BorderLayout.SOUTH);
         
-        // Configuration des actions des boutons
+        // Actions des boutons
         btnCreer.addActionListener(e -> ajouterFacture());
         btnSupprimer.addActionListener(e -> supprimerFacture());
         btnModifier.addActionListener(e -> modifierFacture());
         
         return formPanel;
     }
-    
-    // Méthode pour créer un JTextField stylisé
+
     private JTextField createStyledTextField() {
         JTextField field = new JTextField();
         field.setPreferredSize(new Dimension(15, 28));
         return field;
     }
-    
-    // Méthode pour créer un bouton stylisé
+
     private JButton createStyledButton(String text, Color color) {
         JButton button = new JButton(text);
         button.setBackground(color);
@@ -119,45 +105,30 @@ public class FactureManagementPanel extends JPanel {
         button.setFont(new Font("Arial", Font.CENTER_BASELINE, 10));
         return button;
     }
-    
-    // Méthode pour ajouter un label et un champ au panel  les nom :id compteur //// nom //index///moins 
-    private void addLabelAndField(JPanel panel, String labelText, JComponent field, 
-                                 GridBagConstraints gbc, int row) {
+
+    private void addLabelAndField(JPanel panel, String labelText, JComponent field, GridBagConstraints gbc, int row) {
         JLabel label = new JLabel(labelText);
-        label.setFont(new Font("Arial", Font.PLAIN,14));
-        
+        label.setFont(new Font("Arial", Font.PLAIN, 14));
         gbc.gridx = 0;
         gbc.gridy = row;
         gbc.weightx = 0.3;
         panel.add(label, gbc);
-        
         gbc.gridx = 1;
         gbc.weightx = 0.7;
         panel.add(field, gbc);
     }
-    
-    // Méthode pour créer le tableau des factures
+
+    // Panneau de table
     private JScrollPane createTablePanel() {
-        // Modèle de tableau avec colonnes non éditables
         tableModel = new DefaultTableModel() {
             @Override
             public boolean isCellEditable(int row, int column) {
-                return false;
+                return false; // Les cellules ne sont pas éditables
             }
         };
         
-        /////Résumé des termes :
-       /// Ancien index : Lecture du compteur à la fin de la période précédente.
-
-       /// Nouveau index : Lecture du compteur à la fin de la période actuelle.
-
-      ///  Consommation : Différence entre le nouvel index et l'ancien index, ce qui représente la quantité d'eau utilisée pendant la période.
-        
-        // Définition des colonnes   
-        String[] colonnes = {"ID", "Compteur", "Mois", "Ancien Index", "Nouvel Index", "Consommation", "Montant"};
+        String[] colonnes = {"ID Facture", "Mois", "Montant", "Moitie", "État de Paiement", "Compteur", "Ancien Index", "Nouvel Index", "Consommation"};
         tableModel.setColumnIdentifiers(colonnes);
-        
-        // Création et configuration du tableau
         factureTable = new JTable(tableModel);
         factureTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         factureTable.setRowHeight(13);
@@ -165,22 +136,17 @@ public class FactureManagementPanel extends JPanel {
         factureTable.getTableHeader().setForeground(Color.BLUE);
         factureTable.getTableHeader().setFont(new Font("Arial", Font.BOLD, 13));
         
-        // Configurez le renderer pour formater les montants
+        // Définit les rendus de cellule pour le montant
         DefaultTableCellRenderer rightRenderer = new DefaultTableCellRenderer();
         rightRenderer.setHorizontalAlignment(JLabel.RIGHT);
-        
-        // Format pour les valeurs numériques (colonnes 3, 4, 5, 6)
         NumberFormat currencyFormat = NumberFormat.getCurrencyInstance(Locale.FRANCE);
+        
+        // Rendu pour les montants
         TableCellRenderer currencyRenderer = new DefaultTableCellRenderer() {
             @Override
-            public Component getTableCellRendererComponent(JTable table, Object value,
-                    boolean isSelected, boolean hasFocus, int row, int column) {
+            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
                 if (value instanceof Double) {
-                    if (column == 6) { // Colonne Montant
-                        setText(currencyFormat.format(value));
-                    } else {
-                        setText(String.format("%.2f", value));
-                    }
+                    setText(currencyFormat.format(value));
                 } else {
                     setText((value == null) ? "" : value.toString());
                 }
@@ -188,130 +154,117 @@ public class FactureManagementPanel extends JPanel {
                 return this;
             }
         };
-        
-        factureTable.getColumnModel().getColumn(3).setCellRenderer(rightRenderer);
+
+        // Appliquer les rendus de cellule
+        factureTable.getColumnModel().getColumn(2).setCellRenderer(currencyRenderer);
         factureTable.getColumnModel().getColumn(4).setCellRenderer(rightRenderer);
         factureTable.getColumnModel().getColumn(5).setCellRenderer(rightRenderer);
-        factureTable.getColumnModel().getColumn(6).setCellRenderer(currencyRenderer);
+        factureTable.getColumnModel().getColumn(6).setCellRenderer(rightRenderer);
+        factureTable.getColumnModel().getColumn(7).setCellRenderer(rightRenderer);
         
-        // Ajout d'un écouteur de sélection
+        // Écouteur de sélection pour mettre à jour les champs lorsque la ligne est sélectionnée
         factureTable.getSelectionModel().addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting() && factureTable.getSelectedRow() != -1) {
                 afficherDetailsFacture(factureTable.getSelectedRow());
             }
         });
         
-        // Création du scroll pane avec un titre
         JScrollPane scrollPane = new JScrollPane(factureTable);
         scrollPane.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createTitledBorder(BorderFactory.createLineBorder(HEADER_COLOR), 
+            BorderFactory.createTitledBorder(BorderFactory.createLineBorder(HEADER_COLOR),
             "Liste des Factures", TitledBorder.LEFT, TitledBorder.TOP, TITLE_FONT, HEADER_COLOR),
             new EmptyBorder(10, 10, 10, 10)));
-            
         return scrollPane;
     }
-    
-    // Méthode pour afficher les détails d'une facture sélectionnée
+
     private void afficherDetailsFacture(int row) {
-        compteurField.setText(tableModel.getValueAt(row, 1).toString());
-        moisComboBox.setSelectedItem(tableModel.getValueAt(row, 2).toString());
-        ancienIndexField.setText(tableModel.getValueAt(row, 3).toString());
-        nouvelIndexField.setText(tableModel.getValueAt(row, 4).toString());
+        System.out.println("Ligne sélectionnée: " + row); // Diagnostic
         
-        // Calcul du prix unitaire (montant / consommation)
-        double consommation = (Double) tableModel.getValueAt(row, 5);
-        double montant = (Double) tableModel.getValueAt(row, 6);
+        // Récupérer et afficher les valeurs
+        compteurField.setText(tableModel.getValueAt(row, 5).toString());
+        String dd = tableModel.getValueAt(row, 1).toString();
+        String mois = convertirMoisDeDate(dd); 
+        System.out.println("Mois récupéré: " + mois); // Diagnostic
+        moisComboBox.setSelectedItem(mois);
+        ancienIndexField.setText(tableModel.getValueAt(row, 6).toString());
+        nouvelIndexField.setText(tableModel.getValueAt(row, 7).toString());
+        
+        // Calculer le prix unitaire
+        double consommation = (Double) tableModel.getValueAt(row, 8);
+        double montant = (Double) tableModel.getValueAt(row, 2);
         double prixUnite = consommation > 0 ? montant / consommation : 0;
         prixUniteField.setText(String.format("%.2f", prixUnite));
     }
-    
-    // Les autres méthodes existantes pour les opérations CRUD
-    
-    // Méthode pour charger les factures existantes dans la table
+
     private void chargerFactures() {
-        try (Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/gestion_eau", "root", "");
+        try (Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/javaswing_app", "root", "");
              Statement st = conn.createStatement();
-             ResultSet rs = st.executeQuery("SELECT * FROM factures ORDER BY id DESC")) {
-
-            // Vider le modèle de données avant de le remplir à nouveau
-            tableModel.setRowCount(0);
-
+             ResultSet rs = st.executeQuery("SELECT id_facture, DATE_FORMAT(mois, '%Y-%m') AS mois, montant, moitie, etat_payment, compteur, Ancien_Index, Nouvel_Index, Consommation FROM facture ORDER BY id_facture")) {
+         
+            tableModel.setRowCount(0); // Vider le modèle de table avant le remplissage
             while (rs.next()) {
                 Object[] row = {
-                    rs.getInt("id"),
-                    rs.getString("compteur"),
+                    rs.getInt("id_facture"),
                     rs.getString("mois"),
-                    rs.getDouble("ancien_index"),
-                    rs.getDouble("nouvel_index"),
-                    rs.getDouble("consommation"),
-                    rs.getDouble("montant")
+                    rs.getDouble("montant"),
+                    rs.getInt("moitie"),
+                    rs.getString("etat_payment"),
+                    rs.getString("compteur"),
+                    rs.getDouble("Ancien_Index"),
+                    rs.getDouble("Nouvel_Index"),
+                    rs.getDouble("Consommation")
                 };
                 tableModel.addRow(row);
             }
         } catch (SQLException ex) {
             ex.printStackTrace();
-            JOptionPane.showMessageDialog(this, 
-                "Erreur lors du chargement des factures: " + ex.getMessage(),
-                "Erreur", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Erreur lors du chargement des factures: " + ex.getMessage(), "Erreur", JOptionPane.ERROR_MESSAGE);
         }
     }
 
-    // Méthode pour ajouter une nouvelle facture
     private void ajouterFacture() {
         try {
             String compteur = compteurField.getText();
-            String mois = moisComboBox.getSelectedItem().toString();
+            String mois = getNumeriqueMois(moisComboBox.getSelectedIndex() + 1); // Ajustez l'index du mois
             double ancienIndex = Double.parseDouble(ancienIndexField.getText());
             double nouvelIndex = Double.parseDouble(nouvelIndexField.getText());
-            double prixUnite = Double.parseDouble(prixUniteField.getText());
-
-            // Validation des données
             if (compteur.trim().isEmpty()) {
                 JOptionPane.showMessageDialog(this, "Veuillez entrer un numéro de compteur valide.");
                 return;
             }
-            
             if (nouvelIndex < ancienIndex) {
-                JOptionPane.showMessageDialog(this, 
-                    "Le nouvel index doit être supérieur à l'ancien index.",
-                    "Données invalides", JOptionPane.WARNING_MESSAGE);
+                JOptionPane.showMessageDialog(this, "Le nouvel index doit être supérieur à l'ancien index.", "Données invalides", JOptionPane.WARNING_MESSAGE);
                 return;
             }
-
             double consommation = nouvelIndex - ancienIndex;
-            double montant = consommation * prixUnite;
-
-            // Connexion à la base de données et insertion de la facture
-            try (Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/gestion_eau", "root", "");
-                 PreparedStatement ps = conn.prepareStatement("INSERT INTO factures (compteur, mois, ancien_index, nouvel_index, consommation, montant) VALUES (?, ?, ?, ?, ?, ?)")) {
-
-                ps.setString(1, compteur);
+            double montant = consommation * Double.parseDouble(prixUniteField.getText());
+            
+            try (Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/javaswing_app", "root", "");
+                 PreparedStatement ps = conn.prepareStatement("INSERT INTO facture(id_user, mois, montant, moitie, etat_payment, compteur, Ancien_Index, Nouvel_Index, Consommation) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
+                 
+                ps.setInt(1, 1);  // Ajuster l'id_user et d'autres paramètres selon vos besoins
                 ps.setString(2, mois);
-                ps.setDouble(3, ancienIndex);
-                ps.setDouble(4, nouvelIndex);
-                ps.setDouble(5, consommation);
-                ps.setDouble(6, montant);
-
+                ps.setDouble(3, montant);
+                ps.setInt(4, 1);
+                ps.setString(5, "N");
+                ps.setString(6, compteur);
+                ps.setDouble(7, ancienIndex);
+                ps.setDouble(8, nouvelIndex);
+                ps.setDouble(9, consommation);
                 ps.executeUpdate();
             }
-
             JOptionPane.showMessageDialog(this, "Facture ajoutée avec succès !");
-            chargerFactures();  // Recharger les factures après l'ajout
-            viderChamps();      // Vider les champs après ajout
-
+            chargerFactures();
+            viderChamps();
         } catch (NumberFormatException ex) {
-            JOptionPane.showMessageDialog(this, 
-                "Veuillez entrer des valeurs numériques valides pour les index et le prix unitaire.",
-                "Format invalide", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Veuillez entrer des valeurs numériques valides pour les index et le prix unitaire.", "Format invalide", JOptionPane.WARNING_MESSAGE);
         } catch (Exception ex) {
             ex.printStackTrace();
-            JOptionPane.showMessageDialog(this, 
-                "Erreur lors de l'ajout de la facture: " + ex.getMessage(),
-                "Erreur", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Erreur lors de l'ajout de la facture: " + ex.getMessage(), "Erreur", JOptionPane.ERROR_MESSAGE);
         }
     }
+    
 
-    // Méthode pour vider les champs du formulaire
     private void viderChamps() {
         compteurField.setText("");
         moisComboBox.setSelectedIndex(0);
@@ -321,101 +274,124 @@ public class FactureManagementPanel extends JPanel {
         factureTable.clearSelection();
     }
 
-    // Méthode pour supprimer une facture sélectionnée
     private void supprimerFacture() {
         int row = factureTable.getSelectedRow();
         if (row != -1) {
-            int factureId = (int) factureTable.getValueAt(row, 0); // Récupérer l'ID de la facture sélectionnée
-
-            // Confirmation de la suppression
-            int confirmation = JOptionPane.showConfirmDialog(this, 
-                "Êtes-vous sûr de vouloir supprimer cette facture ?", 
-                "Confirmation", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
-                
+            int factureId = (Integer) factureTable.getValueAt(row, 0);
+            int confirmation = JOptionPane.showConfirmDialog(this, "Êtes-vous sûr de vouloir supprimer cette facture ?", "Confirmation", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
             if (confirmation == JOptionPane.YES_OPTION) {
-                try (Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/gestion_eau", "root", "");
-                     PreparedStatement ps = conn.prepareStatement("DELETE FROM factures WHERE id = ?")) {
-
+                try (Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/javaswing_app", "root", "");
+                     PreparedStatement ps = conn.prepareStatement("DELETE FROM facture WHERE id_facture = ?")) {
                     ps.setInt(1, factureId);
                     ps.executeUpdate();
-
                     JOptionPane.showMessageDialog(this, "Facture supprimée avec succès !");
-                    chargerFactures();  // Recharger les factures après suppression
-                    viderChamps();      // Vider les champs après suppression
+                    chargerFactures();
+                    viderChamps();
                 } catch (SQLException ex) {
                     ex.printStackTrace();
-                    JOptionPane.showMessageDialog(this, 
-                        "Erreur lors de la suppression de la facture: " + ex.getMessage(),
-                        "Erreur", JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(this, "Erreur lors de la suppression de la facture: " + ex.getMessage(), "Erreur", JOptionPane.ERROR_MESSAGE);
                 }
             }
         } else {
-            JOptionPane.showMessageDialog(this, 
-                "Veuillez sélectionner une facture à supprimer.",
-                "Aucune sélection", JOptionPane.INFORMATION_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Veuillez sélectionner une facture à supprimer.", "Aucune sélection", JOptionPane.INFORMATION_MESSAGE);
         }
     }
 
-    // Méthode pour modifier une facture
     private void modifierFacture() {
         int row = factureTable.getSelectedRow();
         if (row != -1) {
-            int factureId = (int) factureTable.getValueAt(row, 0); // Récupérer l'ID de la facture sélectionnée
-
+            int factureId = (Integer) factureTable.getValueAt(row, 0);
             try {
-                // Récupérer les nouvelles valeurs des champs
                 String compteur = compteurField.getText();
-                String mois = moisComboBox.getSelectedItem().toString();
                 double ancienIndex = Double.parseDouble(ancienIndexField.getText());
                 double nouvelIndex = Double.parseDouble(nouvelIndexField.getText());
                 double prixUnite = Double.parseDouble(prixUniteField.getText());
-
-                // Validation
+                
                 if (compteur.trim().isEmpty()) {
                     JOptionPane.showMessageDialog(this, "Veuillez entrer un numéro de compteur valide.");
                     return;
                 }
                 
                 if (nouvelIndex < ancienIndex) {
-                    JOptionPane.showMessageDialog(this, 
-                        "Le nouvel index doit être supérieur à l'ancien index.",
-                        "Données invalides", JOptionPane.WARNING_MESSAGE);
+                    JOptionPane.showMessageDialog(this, "Le nouvel index doit être supérieur à l'ancien index.", "Données invalides", JOptionPane.WARNING_MESSAGE);
                     return;
                 }
-
+                
                 double consommation = nouvelIndex - ancienIndex;
                 double montant = consommation * prixUnite;
-
-                try (Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/gestion_eau", "root", "");
-                     PreparedStatement ps = conn.prepareStatement("UPDATE factures SET compteur = ?, mois = ?, ancien_index = ?, nouvel_index = ?, consommation = ?, montant = ? WHERE id = ?")) {
-
-                    ps.setString(1, compteur);
-                    ps.setString(2, mois);
-                    ps.setDouble(3, ancienIndex);
-                    ps.setDouble(4, nouvelIndex);
-                    ps.setDouble(5, consommation);
-                    ps.setDouble(6, montant);
-                    ps.setInt(7, factureId);
-
+                String moisNom = moisComboBox.getSelectedItem().toString();
+                int moisNumerique = getMoisNumerique(moisNom);
+                String moisAA = String.format("2024-%02d-01", moisNumerique); // Format correct avec un jour
+                
+                try (Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/javaswing_app", "root", "");
+                     PreparedStatement ps = conn.prepareStatement("UPDATE facture SET mois=?, Ancien_Index=?, Nouvel_Index=?, Consommation=?, montant=? WHERE id_facture=?")) {
+                    ps.setString(1, moisAA); // Mois formaté
+                    ps.setDouble(2, ancienIndex);
+                    ps.setDouble(3, nouvelIndex);
+                    ps.setDouble(4, consommation);
+                    ps.setDouble(5, montant);
+                    ps.setInt(6, factureId);
                     ps.executeUpdate();
-
                     JOptionPane.showMessageDialog(this, "Facture modifiée avec succès !");
-                    chargerFactures();  // Recharger les factures après modification
+                    chargerFactures();
                 } catch (SQLException ex) {
                     ex.printStackTrace();
-                    JOptionPane.showMessageDialog(this, 
-                        "Erreur lors de la modification de la facture: " + ex.getMessage(),
-                        "Erreur", JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(this, "Erreur lors de la modification de la facture: " + ex.getMessage(), "Erreur", JOptionPane.ERROR_MESSAGE);
                 }
             } catch (NumberFormatException ex) {
-                JOptionPane.showMessageDialog(this, 
-                    "Veuillez entrer des valeurs numériques valides pour les index et le prix unitaire.",
-                    "Format invalide", JOptionPane.WARNING_MESSAGE);
+                JOptionPane.showMessageDialog(this, "Veuillez entrer des valeurs numériques valides pour les index et le prix unitaire.", "Format invalide", JOptionPane.WARNING_MESSAGE);
             }
         } else {
-            JOptionPane.showMessageDialog(this, 
-                "Veuillez sélectionner une facture à modifier.",
-                "Aucune sélection", JOptionPane.INFORMATION_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Veuillez sélectionner une facture à modifier.", "Aucune sélection", JOptionPane.INFORMATION_MESSAGE);
         }
     }
+
+    private int getMoisNumerique(String moisNom) {
+        switch (moisNom) {
+            case "Janvier": return 1;
+            case "Février": return 2;
+            case "Mars": return 3;
+            case "Avril": return 4;
+            case "Mai": return 5;
+            case "Juin": return 6;
+            case "Juillet": return 7;
+            case "Août": return 8;
+            case "Septembre": return 9;
+            case "Octobre": return 10;
+            case "Novembre": return 11;
+            case "Décembre": return 12;
+            default: return 0;
+        }
+    }
+    private String getNumeriqueMois(int N) {
+        switch (N) {
+            case 1: return "Janvier";
+            case 2: return "Février";
+            case 3: return "Mars";
+            case 4: return "Avril";
+            case 5: return "Mai";
+            case 6: return "Juin";
+            case 7: return "Juillet";
+            case 8: return "Août";
+            case 9: return "Septembre";
+            case 10: return "Octobre";
+            case 11: return "Novembre";
+            case 12: return "Décembre";
+            default: return "Erreur";
+        }
+    }
+    private String convertirMoisDeDate(String date) {
+        // Vérifiez si le format est correct
+        if (date != null && date.matches("\\d{4}-\\d{2}")) {
+            // Séparez l'année et le mois
+            String[] parts = date.split("-");
+            int moisNumerique = Integer.parseInt(parts[1]);
+
+            // Appel à la méthode existante pour obtenir le nom du mois
+            return getNumeriqueMois(moisNumerique);
+        } else {
+            return "Erreur"; // Gérez les formats invalides
+        }
+    }
+ 
 }

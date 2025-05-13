@@ -4,9 +4,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 
 public class Delete {
-	public static void main(String[] args) {
-	    Deleteuser(3);
-	}
+	
 	public static void Deleteuser(int id) {
 		try {
 			Connection cnx =ConnecterBD.connectBD();

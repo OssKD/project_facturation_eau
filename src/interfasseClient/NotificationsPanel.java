@@ -1,105 +1,102 @@
 package interfasseClient;
 
-import java.awt.BorderLayout;
-import java.awt.FlowLayout;
-import java.awt.Font;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-
-import javax.swing.BorderFactory;
-import javax.swing.DefaultListModel;
-import javax.swing.JButton;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JList;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.ListSelectionModel;
-import javax.swing.SwingUtilities;
+import javax.swing.*;
+import java.awt.*;
+import java.sql.*;
 
 public class NotificationsPanel extends JPanel {
-	    private DefaultListModel<String> notificationListModel;
-	    private JList<String> notificationList;
-	    private JButton markAllReadButton;
+    private DefaultListModel<String> notificationListModel;
+    private JList<String> notificationList;
+    private JButton markAllReadButton;
+	private int id_user;
 
-	    public NotificationsPanel() {
-	        setLayout(new BorderLayout()); 
+    public NotificationsPanel(int id) {
+         
+         this.id_user=id;
+    	// Modifiez pour accepter l'id
+        setLayout(new BorderLayout());
+        setBackground(new Color(245, 250, 255)); // Fond clair
 
-	        JLabel titleLabel = new JLabel("Notifications Client");
-	        titleLabel.setFont(new Font("Arial", Font.BOLD, 16));
-	        titleLabel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-	        add(titleLabel, BorderLayout.NORTH);
+        // Titre
+        JLabel titleLabel = new JLabel("📢 Notifications Client", JLabel.CENTER);
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 20));
+        titleLabel.setForeground(new Color(33, 102, 132));
+        titleLabel.setBorder(BorderFactory.createEmptyBorder(20, 0, 10, 0));
+        add(titleLabel, BorderLayout.NORTH);
 
-	        // Liste des notifications
-	        notificationListModel = new DefaultListModel<>();
-	        notificationList = new JList<>(notificationListModel);
-	        notificationList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-	        JScrollPane scrollPane = new JScrollPane(notificationList);
-	        add(scrollPane, BorderLayout.CENTER);
+        // Liste des notifications
+        notificationListModel = new DefaultListModel<>();
+        notificationList = new JList<>(notificationListModel);
+        notificationList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        notificationList.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        notificationList.setBackground(Color.WHITE);
+        JScrollPane scrollPane = new JScrollPane(notificationList);
+        scrollPane.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
+        add(scrollPane, BorderLayout.CENTER);
 
-	        // Bouton pour marquer toutes les notifications comme lues
-	        markAllReadButton = new JButton("Tout marquer comme lu");
-	        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-	        buttonPanel.add(markAllReadButton);
-	        add(buttonPanel, BorderLayout.SOUTH);
+        // Bouton pour marquer toutes les notifications comme lues
+        markAllReadButton = new JButton("✔️ Marquer tout comme lu");
+        markAllReadButton.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        markAllReadButton.setBackground(new Color(33, 102, 132));
+        markAllReadButton.setForeground(Color.WHITE);
+        markAllReadButton.setFocusPainted(false);
+        markAllReadButton.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        buttonPanel.setBackground(new Color(245, 250, 255));
+        buttonPanel.setBorder(BorderFactory.createEmptyBorder(10, 20, 20, 20));
+        buttonPanel.add(markAllReadButton);
+        add(buttonPanel, BorderLayout.SOUTH);
 
-	        // Charger les notifications
-	        loadNotifications();
+        // Charger les notifications
+        loadNotifications(id); // Passer l'id à la méthode
+       
+        // Action bouton
+        markAllReadButton.addActionListener(e -> clearNotifications());
+    }
 
-	        // Action bouton "marquer comme lu"
-	        markAllReadButton.addActionListener(e -> {
-	            clearNotifications();
-	        });
-	    }
+    // Charger depuis la BDD
+    private void loadNotifications(int id) {
+        notificationListModel.clear();
+        String sql = "SELECT message FROM notification WHERE id_user = ?"; // Utilisation de ? pour la requête préparée
+        try (Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/javaswing_app", "root", "");
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+             
+            ps.setInt(1, id); // Paramétrer id_user
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                notificationListModel.addElement("🔔 " + rs.getString("message"));
+            }
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, "❌ Erreur lors du chargement des notifications.");
+        }
+    }
 
-	    // Charger les notifications depuis la base de données
-	    private void loadNotifications() {
-	        notificationListModel.clear();
+    // Supprimer toutes les notifications
+    private void clearNotifications() {
+        String sql = "DELETE FROM notification WHERE id_user = ?"; // Supprimer les notifications pour cet id_user
+        try (Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/javaswing_app", "root", "");
+             PreparedStatement ps = conn.prepareStatement(sql)) {
 
-	        try (Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/gestion_eau", "root", "");
-	             Statement stmt = conn.createStatement();
-	             ResultSet rs = stmt.executeQuery("SELECT message FROM notifications")) {
+            ps.setInt(1,id_user);
+            ps.executeUpdate();
+            notificationListModel.clear();
+            JOptionPane.showMessageDialog(this, "✅ Toutes les notifications ont été marquées comme lues.");
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, "❌ Erreur lors de la suppression des notifications.");
+        }
+    }
 
-	            while (rs.next()) {
-	                notificationListModel.addElement(rs.getString("message"));
-	            }
-
-	        } catch (SQLException ex) {
-	            ex.printStackTrace();
-	            JOptionPane.showMessageDialog(this, "Erreur lors du chargement des notifications.");
-	        }
-	    }
-
-	    // Vider la liste de notifications (simule la lecture)
-	    private void clearNotifications() {
-	        try (Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/gestion_eau", "root", "");
-	             Statement stmt = conn.createStatement()) {
-
-	            stmt.executeUpdate("DELETE FROM notifications");
-	            notificationListModel.clear();
-	            JOptionPane.showMessageDialog(this, "Toutes les notifications ont été marquées comme lues.");
-
-	        } catch (SQLException ex) {
-	            ex.printStackTrace();
-	            JOptionPane.showMessageDialog(this, "Erreur lors de la suppression des notifications.");
-	        }
-	    }
-
-	    // Tester le panel
-	    public static void main(String[] args) {
-	        SwingUtilities.invokeLater(new Runnable() {
-	            public void run() {
-	                JFrame frame = new JFrame("Paiement Facture");
-	                frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-	                frame.setSize(400, 300);
-	                frame.setLocationRelativeTo(null);
-	                frame.setContentPane(new PaymentPanel());
-	                frame.setVisible(true);
-	            }
-	        });
-	    }
+    // Testeur indépendant
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> {
+            JFrame frame = new JFrame("Notifications");
+            frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+            frame.setSize(500, 350);
+            frame.setLocationRelativeTo(null);
+            frame.setContentPane(new NotificationsPanel(1)); // Ajustez pour passer l'id souhaité
+            frame.setVisible(true);
+        });
+    }
 }

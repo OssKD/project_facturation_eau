@@ -1,71 +1,224 @@
 package interfasseClient;
 
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Cursor;
+import java.awt.FlowLayout;
+import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
+import java.awt.GridLayout;
 import java.awt.Insets;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
+import java.net.Socket;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.HashMap;
+import java.util.Map;
 
-import javax.swing.*;
+import javax.swing.BorderFactory;
+import javax.swing.Box;
+import javax.swing.JButton;
+import javax.swing.JComboBox;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JTextField;
+import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
+import javax.swing.Timer;
+import javax.swing.UIManager;
+import javax.swing.border.EmptyBorder;
 
 public class PaymentPanel extends JPanel {
 
-    private JTextField idField;
-    private JTextField montantField;
+    private JTextField idField, montantField;
     private JComboBox<String> methodePaiementCombo;
-    private JButton payerButton;
+    private JButton checkButton, payerButton;
+    private JLabel statutLabel;
+
+    // Palette de couleurs moderne
+    private static final Color BACKGROUND_COLOR = new Color(245, 245, 250); // Gris très pâle / lavande claire
+    private static final Color MAIN_COLOR = new Color(52, 152, 219); // Bleu principal (style flat design)
+    private static final Color SECONDARY_COLOR = new Color(41, 128, 185); // Bleu secondaire / hover ou focus
+    private static final Color SUCCESS_COLOR = new Color(46, 204, 113); // Vert succès / validation OK
+    private static final Color ERROR_COLOR = new Color(231, 76, 60); // Rouge erreur / invalide
+    private static final Color TEXT_COLOR = new Color(44, 62, 80); // Couleur du texte général (titres, labels)
+
+    // Polices modernisées
+    private static final Font LABEL_FONT = new Font("Arial", Font.BOLD, 13);
+    private static final Font FIELD_FONT = new Font("Arial", Font.PLAIN, 14);
+    private static final Font TITLE_FONT = new Font("Arial", Font.BOLD, 22);
+    private static final Font BUTTON_FONT = new Font("Arial", Font.BOLD, 14);
 
     public PaymentPanel() {
-        setLayout(new GridBagLayout());
+        setLayout(new BorderLayout(20, 20));
+        setBackground(BACKGROUND_COLOR);
+        setBorder(new EmptyBorder(25, 30, 25, 30));
+        
+        // Panneau principal
+        JPanel mainPanel = new JPanel();
+        mainPanel.setLayout(new GridBagLayout());
+        mainPanel.setBackground(BACKGROUND_COLOR);
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(10, 10, 10, 10);
+        gbc.insets = new Insets(10, 15, 10, 15);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.weightx = 1.0;
 
-        // ID de la facture
-        gbc.gridx = 0;
+        // En-tête avec logo et titre
+        JPanel headerPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        headerPanel.setBackground(BACKGROUND_COLOR);
+        
+        // Icône simulée (pourrait être remplacée par une vraie image)
+        JLabel iconLabel = new JLabel("💧");
+        iconLabel.setFont(new Font("Dialog", Font.PLAIN, 40));
+        
+        // Titre
+        JLabel titleLabel = new JLabel("Paiement de Facture");
+        titleLabel.setFont(TITLE_FONT);
+        titleLabel.setForeground(MAIN_COLOR);
+        
+        headerPanel.add(iconLabel);
+        headerPanel.add(Box.createHorizontalStrut(15));
+        headerPanel.add(titleLabel);
+        
+        // Formulaire
+        JPanel formPanel = new JPanel();
+        formPanel.setLayout(new GridBagLayout());
+        formPanel.setBackground(Color.WHITE);
+        formPanel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(230, 230, 230), 1),
+                BorderFactory.createEmptyBorder(20, 20, 20, 20)));
+
+        // ID Facture
+        gbc.gridwidth = 1;
         gbc.gridy = 0;
-        add(new JLabel("ID Facture :"), gbc);
+        gbc.gridx = 0;
+        gbc.anchor = GridBagConstraints.WEST;
+        JLabel idLabel = new JLabel("Numéro de facture");
+        idLabel.setFont(LABEL_FONT);
+        idLabel.setForeground(TEXT_COLOR);
+        formPanel.add(idLabel, gbc);
 
-        idField = new JTextField(10);
-        gbc.gridx = 1;
-        add(idField, gbc);
-
-        // Montant à payer
+        idField = createStyledTextField();
         gbc.gridx = 0;
         gbc.gridy = 1;
-        add(new JLabel("Montant à payer :"), gbc);
+        gbc.insets = new Insets(5, 0, 15, 0);
+        formPanel.add(idField, gbc);
 
-        montantField = new JTextField(10);
-        gbc.gridx = 1;
-        add(montantField, gbc);
-
-        // Méthode de paiement
-        gbc.gridx = 0;
+        // Montant
         gbc.gridy = 2;
-        add(new JLabel("Méthode de paiement :"), gbc);
+        gbc.gridx = 0;
+        gbc.insets = new Insets(0, 0, 5, 0);
+        JLabel montantLabel = new JLabel("Montant à payer (€)");
+        montantLabel.setFont(LABEL_FONT);
+        montantLabel.setForeground(TEXT_COLOR);
+        formPanel.add(montantLabel, gbc);
 
-        methodePaiementCombo = new JComboBox<>(new String[]{"Carte", "Chèque"});
-        gbc.gridx = 1;
-        add(methodePaiementCombo, gbc);
-
-        // Bouton Payer
-        payerButton = new JButton("Payer maintenant");
+        montantField = createStyledTextField();
         gbc.gridx = 0;
         gbc.gridy = 3;
-        gbc.gridwidth = 2;
-        add(payerButton, gbc);
+        gbc.insets = new Insets(5, 0, 15, 0);
+        formPanel.add(montantField, gbc);
 
+        // Méthode de paiement
+        gbc.gridy = 4;
+        gbc.gridx = 0;
+        gbc.insets = new Insets(0, 0, 5, 0);
+        JLabel methodeLabel = new JLabel("Méthode de paiement");
+        methodeLabel.setFont(LABEL_FONT);
+        methodeLabel.setForeground(TEXT_COLOR);
+        formPanel.add(methodeLabel, gbc);
+
+        methodePaiementCombo = new JComboBox<>(new String[]{"Carte bancaire", "Chèque", "Virement bancaire"});
+        methodePaiementCombo.setFont(FIELD_FONT);
+        methodePaiementCombo.setBackground(Color.WHITE);
+        methodePaiementCombo.setForeground(TEXT_COLOR);
+        methodePaiementCombo.setBorder(BorderFactory.createLineBorder(new Color(220, 220, 220), 1));
+        gbc.gridx = 0;
+        gbc.gridy = 5;
+        gbc.insets = new Insets(5, 0, 15, 0);
+        formPanel.add(methodePaiementCombo, gbc);
+
+        // Statut
+        gbc.gridy = 6;
+        gbc.gridx = 0;
+        statutLabel = new JLabel("Veuillez saisir les informations de votre facture");
+        statutLabel.setFont(FIELD_FONT);
+        statutLabel.setForeground(Color.GRAY);
+        statutLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        gbc.insets = new Insets(10, 0, 15, 0);
+        formPanel.add(statutLabel, gbc);
+
+        // Panneau des boutons
+        JPanel buttonPanel = new JPanel(new GridLayout(1, 2, 15, 0));
+        buttonPanel.setBackground(Color.WHITE);
+        
+        checkButton = createStyledButton("Vérifier", MAIN_COLOR);
+        payerButton = createStyledButton("Payer maintenant", SUCCESS_COLOR);
+        payerButton.setEnabled(false);
+        
+        buttonPanel.add(checkButton);
+        buttonPanel.add(payerButton);
+        
+        gbc.gridy = 7;
+        gbc.gridx = 0;
+        gbc.insets = new Insets(5, 0, 5, 0);
+        formPanel.add(buttonPanel, gbc);
+
+        // Actions
+        checkButton.addActionListener(e -> verifierFacture());
         payerButton.addActionListener(e -> effectuerPaiement());
+
+        // Assemblage final
+        add(headerPanel, BorderLayout.NORTH);
+        add(formPanel, BorderLayout.CENTER);
+    }
+    
+    private JTextField createStyledTextField() {
+        JTextField field = new JTextField(15);
+        field.setFont(FIELD_FONT);
+        field.setForeground(TEXT_COLOR);
+        field.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(220, 220, 220), 1),
+                BorderFactory.createEmptyBorder(10, 10, 10, 10)));
+        return field;
+    }
+    
+    private JButton createStyledButton(String text, Color bgColor) {
+        JButton button = new JButton(text);
+        button.setFont(BUTTON_FONT);
+        button.setBackground(bgColor);
+        button.setForeground(Color.WHITE);
+        button.setFocusPainted(false);
+        button.setBorder(BorderFactory.createEmptyBorder(12, 20, 12, 20));
+        button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        
+        // Effet de survol
+        button.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                button.setBackground(bgColor.darker());
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                button.setBackground(bgColor);
+            }
+        });
+        
+        return button;
     }
 
-    private void effectuerPaiement() {
+    private void verifierFacture() {
         String idStr = idField.getText().trim();
         String montantStr = montantField.getText().trim();
-        String methode = (String) methodePaiementCombo.getSelectedItem();
 
         if (idStr.isEmpty() || montantStr.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Veuillez remplir tous les champs.");
+            statutLabel.setText("Veuillez remplir tous les champs requis");
+            statutLabel.setForeground(ERROR_COLOR);
             return;
         }
 
@@ -73,47 +226,153 @@ public class PaymentPanel extends JPanel {
             int id = Integer.parseInt(idStr);
             double montant = Double.parseDouble(montantStr);
 
-            if (montant <= 0) {
-                JOptionPane.showMessageDialog(this, "Le montant doit être supérieur à 0.");
-                return;
-            }
+            // Animation de chargement
+            statutLabel.setText("Vérification en cours...");
+            statutLabel.setForeground(MAIN_COLOR);
 
-            Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/ja", "root", "");
-            PreparedStatement stmt = conn.prepareStatement(
-                "UPDATE factures SET statut = 'Payée', methode_paiement = ? WHERE id = ? AND montant = ? AND statut = 'Non payée'"
-            );
-            stmt.setString(1, methode);
-            stmt.setInt(2, id);
-            stmt.setDouble(3, montant);
+            // Simuler un délai de connexion (peut être supprimé en production)
+            Timer timer = new Timer(800, e -> {
+                try {
+                    Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/javaswing_app", "root", "");
+                    PreparedStatement stmt = conn.prepareStatement(
+                            "SELECT * FROM facture WHERE id_facture = ? AND etat_payment = 'N'");
+                    stmt.setInt(1, id);
+                  
 
-            int rows = stmt.executeUpdate();
+                    ResultSet rs = stmt.executeQuery();
 
-            if (rows > 0) {
-                JOptionPane.showMessageDialog(this, "Paiement effectué avec succès via " + methode + " !");
-            } else {
-                JOptionPane.showMessageDialog(this, "Aucune facture correspondante trouvée ou déjà payée.");
-            }
+                    if (rs.next()) {
+                        statutLabel.setText("✓ Facture trouvée et validée");
+                        statutLabel.setForeground(SUCCESS_COLOR);
+                        payerButton.setEnabled(true);
+                    } else {
+                        statutLabel.setText("✗ Facture non trouvée ou déjà payée");
+                        statutLabel.setForeground(ERROR_COLOR);
+                        payerButton.setEnabled(false);
+                    }
 
-            stmt.close();
-            conn.close();
+                    rs.close();
+                    stmt.close();
+                    conn.close();
+
+                } catch (SQLException ex) {
+                    statutLabel.setText("Erreur de connexion à la base de données");
+                    statutLabel.setForeground(ERROR_COLOR);
+                    ex.printStackTrace();
+                }
+            });
+            timer.setRepeats(false);
+            timer.start();
 
         } catch (NumberFormatException ex) {
-            JOptionPane.showMessageDialog(this, "ID ou montant invalide.");
-        } catch (SQLException ex) {
-            ex.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Erreur lors du paiement.");
+            statutLabel.setText("Format de numéro ou de montant invalide");
+            statutLabel.setForeground(ERROR_COLOR);
         }
     }
 
+   private void effectuerPaiement() {
+    String idStr = idField.getText().trim();
+    String montantStr = montantField.getText().trim();
+    String methode = (String) methodePaiementCombo.getSelectedItem();
+
+    JPanel confirmPanel = new JPanel(new BorderLayout(10, 10));
+    confirmPanel.add(new JLabel("<html><b>Détails du paiement :</b><br>" +
+            "Facture n° : " + idStr + "<br>" +
+            "Montant : " + montantStr + " €<br>" +
+            "Méthode : " + methode + "</html>"), BorderLayout.CENTER);
+
+    int confirm = JOptionPane.showConfirmDialog(this,
+            confirmPanel,
+            "Confirmation de paiement",
+            JOptionPane.YES_NO_OPTION,
+            JOptionPane.QUESTION_MESSAGE);
+
+    if (confirm != JOptionPane.YES_OPTION) return;
+
+    String serveurIP = "192.168.164.3"; // IP du serveur Banque
+    int port = 5000;
+
+    try {
+        int id = Integer.parseInt(idStr);
+        double montant = Double.parseDouble(montantStr);
+
+        statutLabel.setText("Traitement du paiement...");
+        statutLabel.setForeground(MAIN_COLOR);
+        payerButton.setEnabled(false);
+
+        Timer timer = new Timer(1000, e -> {
+            try {
+                Class.forName("com.mysql.cj.jdbc.Driver");
+                Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/javaswing_app", "root", "");
+
+                PreparedStatement stmt = conn.prepareStatement(
+                        "SELECT id_facture, id_user  FROM facture WHERE id_facture = ?");
+                stmt.setInt(1, id);
+
+                ResultSet rs = stmt.executeQuery();
+
+                if (rs.next()) {
+                    Map<String, Object> paiement = new HashMap<>();
+                    paiement.put("id_facture", rs.getInt("id_facture"));
+                    paiement.put("montant",montantStr);
+                    paiement.put("user", rs.getInt("id_user"));
+
+                    // Envoyer le Map via socket
+                    try (
+                        Socket socket = new Socket(serveurIP, port);
+                        ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream())
+                    ) {
+                        out.writeObject(paiement);
+                        out.flush();
+                        statutLabel.setText("Paiement envoyé !");
+                        statutLabel.setForeground(new Color(0, 128, 0));
+                    } catch (IOException ioEx) {
+                        ioEx.printStackTrace();
+                        statutLabel.setText("Erreur d'envoi au serveur");
+                        statutLabel.setForeground(ERROR_COLOR);
+                    }
+                } else {
+                    statutLabel.setText("Facture introuvable !");
+                    statutLabel.setForeground(ERROR_COLOR);
+                }
+
+                rs.close();
+                stmt.close();
+                conn.close();
+
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                statutLabel.setText("Erreur lors du traitement du paiement");
+                statutLabel.setForeground(ERROR_COLOR);
+            }
+        });
+
+        timer.setRepeats(false);
+        timer.start();
+
+    } catch (Exception ex) {
+        ex.printStackTrace();
+        statutLabel.setText("Erreur lors du paiement");
+        statutLabel.setForeground(ERROR_COLOR);
+    }
+}
+
+    // Test indépendant
     public static void main(String[] args) {
+        try {
+            // Appliquer le look and feel système
+            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        
         SwingUtilities.invokeLater(() -> {
-            JFrame frame = new JFrame("Paiement Facture");
-            frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-            frame.setSize(400, 300);
-            frame.setLocationRelativeTo(null);
+            JFrame frame = new JFrame("Gestion des Paiements");
             frame.setContentPane(new PaymentPanel());
+            frame.setSize(500, 600);
+            frame.setLocationRelativeTo(null);
+            frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
             frame.setVisible(true);
         });
     }
 }
-
