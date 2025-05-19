@@ -1,123 +1,187 @@
 package interfasseClient;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.sql.*;
+
 import com.itextpdf.text.*;
 import com.itextpdf.text.pdf.*;
+import com.itextpdf.text.pdf.draw.LineSeparator;
+
+
+import java.io.FileOutputStream;
+import java.sql.*;
 
 public class FactureEauGenerator {
 
-    public void generatePDF(int id_facture) throws SQLException {
-        Document document = new Document();
+    public static void genererFacturePDF(int idFacture, String fichierDestination) {
+        String url = "jdbc:mysql://localhost:3306/javaswing_app";
+        String user = "root";
+        String password = "";
 
-        // Données de la facture
-        String nom = "", email = "", adresse = "";
-        double montant = 0;
-        Date dateFacture = null;
+        try (Connection con = DriverManager.getConnection(url, user, password)) {
 
-        try {
-            File dossier = new File("factures");
-            if (!dossier.exists()) dossier.mkdirs();
+            String sql = "SELECT f.*, u.nom, u.prenom, u.adress_h, u.numero_compteur " +
+                         "FROM facture f JOIN user u ON f.id_user = u.id_user WHERE f.id_facture = ?";
+            PreparedStatement pst = con.prepareStatement(sql);
+            pst.setInt(1, idFacture);
+            ResultSet rs = pst.executeQuery();
 
-            // Connexion et récupération des données
-            try (Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/javaswing_app", "root", "");
-                 PreparedStatement ps = conn.prepareStatement("SELECT u.nom, u.email, u.adress_h, f.montant, f.mois FROM user u INNER JOIN facture f ON u.id_user = f.id_user WHERE f.id_facture = ?")) {
-
-                ps.setInt(1, id_facture);
-                ResultSet rs = ps.executeQuery();
-                if (rs.next()) {
-                    nom = rs.getString("nom");
-                    email = rs.getString("email");
-                    adresse = rs.getString("adress_h");
-                    montant = rs.getDouble("montant");
-                    dateFacture = rs.getDate("mois");
-                } else {
-                    System.out.println("Facture introuvable");
-                    return;
-                }
+            if (!rs.next()) {
+                System.out.println("Facture non trouvée !");
+                return;
             }
 
-            // Vérifier si dateFacture est null
-            if (dateFacture == null) {
-                System.out.println("Date de facture introuvable.");
-                return; 
-            }
+            // Données récupérées
+            String nomClient = rs.getString("nom") + " " + rs.getString("prenom");
+            String adresseClient = rs.getString("adress_h");
+            String numeroClient = rs.getString("numero_compteur") + "";
+            String numeroFacture = rs.getString("id_facture");
+            String periode = rs.getString("mois");
+            String dateFacture = rs.getString("mois");
+            String dateEcheance = "15 jours après émission";
 
-            // Génération du fichier
-            String path = "factures/Facture_" + nom + "_" + dateFacture + ".pdf";
-            PdfWriter.getInstance(document, new FileOutputStream(path));
+            int indexAncien = rs.getInt("Ancien_Index");
+            int indexNouveau = rs.getInt("Nouvel_Index");
+            int consommation = rs.getInt("Consommation");
+            double montant = rs.getDouble("montant");
+
+            double prixUnitaire = 2.0;
+            double abonnement = 20.0;
+            double taxes = 0.15 * montant;
+
+            Document document = new Document(PageSize.A4, 50, 50, 60, 50);
+            PdfWriter.getInstance(document, new FileOutputStream(fichierDestination));
             document.open();
 
-            // Styles
-            Font titleFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 22, BaseColor.DARK_GRAY);
-            Font labelFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 12);
-            Font normalFont = FontFactory.getFont(FontFactory.HELVETICA, 12);
+            // --- LOGO + TITRE ---
+            PdfPTable topTable = new PdfPTable(2);
+            topTable.setWidthPercentage(100);
+            topTable.setWidths(new float[]{1, 4});
 
-            // Titre
-            Paragraph titre = new Paragraph("FACTURE D'EAU", titleFont);
-            titre.setAlignment(Element.ALIGN_CENTER);
-            titre.setSpacingAfter(20);
-            document.add(titre);
+            // Logo
+            Image logo = Image.getInstance("images/logo.JPG");
+            logo.scaleAbsolute(60, 60);
+            PdfPCell logoCell = new PdfPCell(logo);
+            logoCell.setBorder(Rectangle.NO_BORDER);
+            logoCell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            topTable.addCell(logoCell);
 
-            // Infos client
-            PdfPTable clientTable = new PdfPTable(2);
-            clientTable.setWidthPercentage(100);
-            clientTable.setSpacingAfter(15);
+            // Titre société
+            PdfPCell societeCell = new PdfPCell(new Phrase("SOCIETE DES EAUX", new Font(Font.FontFamily.HELVETICA, 20, Font.BOLD, BaseColor.BLUE)));
+            societeCell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            societeCell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            societeCell.setPadding(10);
+            societeCell.setBorder(Rectangle.NO_BORDER);
+            topTable.addCell(societeCell);
 
-            clientTable.addCell(getCell("Nom du client :", labelFont));
-            clientTable.addCell(getCell(nom, normalFont));
-            clientTable.addCell(getCell("Email :", labelFont));
-            clientTable.addCell(getCell(email, normalFont));
-            clientTable.addCell(getCell("Adresse :", labelFont));
-            clientTable.addCell(getCell(adresse, normalFont));
-            clientTable.addCell(getCell("Date de facturation :", labelFont));
-            clientTable.addCell(getCell(String.valueOf(dateFacture), normalFont));
+            document.add(topTable);
+            document.add(new LineSeparator());
+            document.add(Chunk.NEWLINE);
 
-            document.add(clientTable);
+            // --- INFOS FACTURE ---
+            PdfPTable infoTable = new PdfPTable(2);
+            infoTable.setWidthPercentage(100);
+            infoTable.setSpacingAfter(10f);
+            infoTable.addCell(cell("Facture N° :", true));
+            infoTable.addCell(cell(numeroFacture, false));
+            infoTable.addCell(cell("Date d'émission :", true));
+            infoTable.addCell(cell(dateFacture, false));
+            infoTable.addCell(cell("Période :", true));
+            infoTable.addCell(cell(periode, false));
+            infoTable.addCell(cell("Échéance :", true));
+            infoTable.addCell(cell(dateEcheance, false));
+            document.add(infoTable);
 
-            // Détails de la facture
-            PdfPTable table = new PdfPTable(3);
-            table.setWidthPercentage(100);
-            table.setSpacingBefore(10);
-            table.setWidths(new float[]{2f, 4f, 2f});
+            // --- INFOS CLIENT ---
+            Paragraph clientTitle = new Paragraph("Informations du client", new Font(Font.FontFamily.HELVETICA, 14, Font.BOLD, BaseColor.BLACK));
+            clientTitle.setSpacingBefore(10f);
+            clientTitle.setSpacingAfter(5f);
+            document.add(clientTitle);
 
-            table.addCell(getHeaderCell("ID Facture"));
-            table.addCell(getHeaderCell("Mois"));
-            table.addCell(getHeaderCell("Montant (€)"));
+            document.add(new Paragraph("Nom : " + nomClient));
+            document.add(new Paragraph("Adresse : " + adresseClient));
+            document.add(new Paragraph("N° Compteur : " + numeroClient));
+            document.add(Chunk.NEWLINE);
 
-            table.addCell(getCell(String.valueOf(id_facture), normalFont));
-            table.addCell(getCell(String.valueOf(dateFacture), normalFont));
-            table.addCell(getCell(String.format("%.2f", montant), normalFont));
+            // --- DÉTAILS COMPTEUR ---
+            Paragraph compteurTitle = new Paragraph("Détails du compteur", new Font(Font.FontFamily.HELVETICA, 14, Font.BOLD));
+            compteurTitle.setSpacingBefore(10f);
+            compteurTitle.setSpacingAfter(5f);
+            document.add(compteurTitle);
 
-            document.add(table);
+            PdfPTable compteurTable = new PdfPTable(2);
+            compteurTable.setWidthPercentage(60);
+            compteurTable.setSpacingAfter(10f);
+            compteurTable.addCell(cell("Ancien index", true));
+            compteurTable.addCell(cell(indexAncien + " m³", false));
+            compteurTable.addCell(cell("Nouvel index", true));
+            compteurTable.addCell(cell(indexNouveau + " m³", false));
+            compteurTable.addCell(cell("Consommation", true));
+            compteurTable.addCell(cell(consommation + " m³", false));
+            document.add(compteurTable);
 
-            // Footer
-            Paragraph footer = new Paragraph("Merci pour votre confiance !", labelFont);
-            footer.setAlignment(Element.ALIGN_CENTER);
-            footer.setSpacingBefore(30);
-            document.add(footer);
+            // --- DÉTAIL FACTURATION ---
+            Paragraph factureTitle = new Paragraph("Détail de la facturation", new Font(Font.FontFamily.HELVETICA, 14, Font.BOLD));
+            factureTitle.setSpacingAfter(5f);
+            document.add(factureTitle);
 
-        } catch (DocumentException | IOException e) {
-            e.printStackTrace();
-        } finally {
+            PdfPTable factureTable = new PdfPTable(4);
+            factureTable.setWidthPercentage(100);
+            factureTable.setSpacingBefore(10f);
+            factureTable.setWidths(new float[]{3, 2, 2, 2});
+
+            factureTable.addCell(headerCell("Description"));
+            factureTable.addCell(headerCell("Quantité"));
+            factureTable.addCell(headerCell("Prix unitaire"));
+            factureTable.addCell(headerCell("Total"));
+
+            factureTable.addCell(cell("Eau consommée", false));
+            factureTable.addCell(cell(consommation + " m³", false));
+            factureTable.addCell(cell(String.format("%.2f €", prixUnitaire), false));
+            factureTable.addCell(cell(String.format("%.2f €", consommation * prixUnitaire), false));
+
+            factureTable.addCell(cell("Abonnement mensuel", false));
+            factureTable.addCell(cell("-", false));
+            factureTable.addCell(cell("-", false));
+            factureTable.addCell(cell(String.format("%.2f €", abonnement), false));
+
+            factureTable.addCell(cell("Taxes", false));
+            factureTable.addCell(cell("-", false));
+            factureTable.addCell(cell("-", false));
+            factureTable.addCell(cell(String.format("%.2f €", taxes), false));
+
+            PdfPCell totalCell = new PdfPCell(new Phrase("TOTAL TTC", new Font(Font.FontFamily.HELVETICA, 12, Font.BOLD)));
+            totalCell.setColspan(3);
+            totalCell.setHorizontalAlignment(Element.ALIGN_RIGHT);
+            totalCell.setBackgroundColor(new BaseColor(230, 230, 250));
+            factureTable.addCell(totalCell);
+            factureTable.addCell(new PdfPCell(new Phrase(String.format("%.2f €", montant), new Font(Font.FontFamily.HELVETICA, 12, Font.BOLD))));
+
+            document.add(factureTable);
+
+            // --- Message final ---
+            document.add(Chunk.NEWLINE);
+            document.add(new Paragraph("Merci pour votre confiance !", new Font(Font.FontFamily.HELVETICA, 11, Font.ITALIC, BaseColor.DARK_GRAY)));
+
             document.close();
+            System.out.println("Facture PDF générée à : " + fichierDestination);
+
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
-    private PdfPCell getCell(String text, Font font) {
+    // Cellules de contenu
+    private static PdfPCell cell(String text, boolean bold) {
+        Font font = new Font(Font.FontFamily.HELVETICA, 11, bold ? Font.BOLD : Font.NORMAL);
         PdfPCell cell = new PdfPCell(new Phrase(text, font));
-        cell.setPadding(8);
-        cell.setBorder(Rectangle.NO_BORDER);
+        cell.setPadding(5);
         return cell;
     }
 
-    private PdfPCell getHeaderCell(String text) {
-        Font font = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 13, BaseColor.WHITE);
-        PdfPCell cell = new PdfPCell(new Phrase(text, font));
-        cell.setBackgroundColor(new BaseColor(0, 121, 182));
+    // En-têtes de tableau
+    private static PdfPCell headerCell(String text) {
+        PdfPCell cell = new PdfPCell(new Phrase(text, new Font(Font.FontFamily.HELVETICA, 12, Font.BOLD, BaseColor.WHITE)));
+        cell.setBackgroundColor(new BaseColor(0, 102, 204));
         cell.setHorizontalAlignment(Element.ALIGN_CENTER);
-        cell.setPadding(8);
+        cell.setPadding(7);
         return cell;
     }
 }

@@ -1,8 +1,30 @@
 package module;
 
-import java.awt.*;
-import java.awt.event.*;
-import java.awt.geom.*;
+import java.awt.AlphaComposite;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Composite;
+import java.awt.Cursor;
+import java.awt.Dimension;
+import java.awt.Font;
+import java.awt.GradientPaint;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.Image;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
+import java.awt.RadialGradientPaint;
+import java.awt.RenderingHints;
+import java.awt.Window;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.geom.Path2D;
+import java.awt.geom.Point2D;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -10,12 +32,22 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Random;
-import javax.swing.*;
+
+import javax.swing.BorderFactory;
+import javax.swing.ImageIcon;
+import javax.swing.JButton;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JPasswordField;
+import javax.swing.JSeparator;
+import javax.swing.JTextField;
+import javax.swing.Timer;
 import javax.swing.border.EmptyBorder;
 
 import interfasseAdmin.AdminDashboard;
 import interfasseClient.ClientDashboard;
-import module.RegisterPanel;
 
 
 /**
@@ -26,6 +58,12 @@ public class LoginPanel extends JPanel {
     private JTextField emailField;
     private JPasswordField passwordField;
     private JButton loginButton, forgotPasswordButton, registerButton;
+    private JButton togglePasswordButton;
+    private boolean passwordVisible = false;
+    
+    // Icônes pour le bouton de visibilité du mot de passe
+    private ImageIcon eyeIcon;
+    private ImageIcon lockIcon;
     
     // Composants pour l'animation d'eau
     private ArrayList<WaterDrop> waterDrops;
@@ -48,6 +86,9 @@ public class LoginPanel extends JPanel {
         // Configuration du panneau
         setLayout(new BorderLayout());
         setBackground(Color.WHITE);
+        
+        // Chargement des icônes
+        loadIcons();
       
         // Initialisation de l'animation d'eau
         initWaterAnimation();
@@ -58,6 +99,29 @@ public class LoginPanel extends JPanel {
         // Ajout des panneaux au conteneur principal
         add(new WaterAnimationPanel(), BorderLayout.CENTER);
         add(formPanel, BorderLayout.EAST);
+    }
+    
+    /**
+     * Chargement des icônes pour l'interface
+     */
+    private void loadIcons() {
+        try {
+            // Chargement et redimensionnement des icônes
+            ImageIcon originalEyeIcon = new ImageIcon(getClass().getResource("/images/eye.png"));
+            ImageIcon originalLockIcon = new ImageIcon(getClass().getResource("/images/lock.png"));
+            
+            // Redimensionner les icônes (ajuster la taille selon vos besoins)
+            Image eyeImage = originalEyeIcon.getImage().getScaledInstance(20, 20, Image.SCALE_SMOOTH);
+            Image lockImage = originalLockIcon.getImage().getScaledInstance(20, 20, Image.SCALE_SMOOTH);
+            
+            eyeIcon = new ImageIcon(eyeImage);
+            lockIcon = new ImageIcon(lockImage);
+        } catch (Exception e) {
+            // En cas d'erreur, utiliser des caractères Unicode comme fallback
+            System.err.println("Erreur lors du chargement des icônes: " + e.getMessage());
+            eyeIcon = null;
+            lockIcon = null;
+        }
     }
     
     /**
@@ -152,10 +216,37 @@ public class LoginPanel extends JPanel {
         gbc.insets = new Insets(10, 10, 5, 10);
         formPanel.add(passwordLabel, gbc);
         
+        // Panneau pour contenir le champ mot de passe et le bouton de visibilité
+        JPanel passwordPanel = new JPanel(new BorderLayout(5, 0));
+        passwordPanel.setBackground(new Color(255, 255, 255, 0)); // Transparent
+        
         passwordField = createStyledPasswordField();
+        passwordPanel.add(passwordField, BorderLayout.CENTER);
+        
+        // Bouton de visibilité du mot de passe
+        togglePasswordButton = new JButton();
+        togglePasswordButton.setFocusPainted(false);
+        togglePasswordButton.setBorderPainted(false);
+        togglePasswordButton.setContentAreaFilled(false);
+        togglePasswordButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        togglePasswordButton.setToolTipText("Afficher/masquer le mot de passe");
+        
+        // Définir l'icône initiale (ou texte de secours si l'icône n'est pas disponible)
+        if (eyeIcon != null) {
+            togglePasswordButton.setIcon(eyeIcon);
+        } else {
+            togglePasswordButton.setText("👁");
+            togglePasswordButton.setFont(new Font("Arial", Font.PLAIN, 18));
+            togglePasswordButton.setForeground(DEEP_BLUE);
+        }
+        
+        togglePasswordButton.addActionListener(e -> togglePasswordVisibility());
+        
+        passwordPanel.add(togglePasswordButton, BorderLayout.EAST);
+        
         gbc.gridy = 4;
         gbc.insets = new Insets(0, 10, 20, 10);
-        formPanel.add(passwordField, gbc);
+        formPanel.add(passwordPanel, gbc);
         
         // Bouton de connexion
         loginButton = createStyledButton("Connexion");
@@ -163,16 +254,22 @@ public class LoginPanel extends JPanel {
         gbc.insets = new Insets(15, 10, 10, 10);
         formPanel.add(loginButton, gbc);
         
+        // changer mot de passe oublié
+        JButton changemot_passe = createLinkButton("changer mot de passe ?");
+        gbc.gridy = 6;
+        gbc.anchor = GridBagConstraints.CENTER;
+        formPanel.add(changemot_passe, gbc);
+        
         // Bouton mot de passe oublié
         forgotPasswordButton = createLinkButton("Mot de passe oublié ?");
-        gbc.gridy = 6;
+        gbc.gridy = 7;
         gbc.anchor = GridBagConstraints.CENTER;
         formPanel.add(forgotPasswordButton, gbc);
         
         // Séparateur
         JSeparator separator = new JSeparator();
         separator.setForeground(new Color(200, 200, 200));
-        gbc.gridy = 7;
+        gbc.gridy = 8;
         gbc.insets = new Insets(20, 10, 20, 10);
         formPanel.add(separator, gbc);
         
@@ -203,9 +300,17 @@ public class LoginPanel extends JPanel {
         
         // Configuration des actions
         loginButton.addActionListener(e -> handleLogin(frame));
+      
+        changemot_passe.addActionListener(e -> {
+            PasswordResetPanel change = new PasswordResetPanel(frame);
+            frame.setContentPane(change);
+            frame.revalidate(); // Pour mettre à jour l'affichage
+            frame.repaint();    // Pour redessiner la fenêtre
+        });
+        
         forgotPasswordButton.addActionListener(e -> {
-            PasswordResetPanel PasswordResetPanel = new PasswordResetPanel(frame);
-            frame.setContentPane(PasswordResetPanel);
+            mot_passeOublier mot_passeObl = new mot_passeOublier(frame);
+            frame.setContentPane(mot_passeObl);
             frame.revalidate(); // Pour mettre à jour l'affichage
             frame.repaint();    // Pour redessiner la fenêtre
         }
@@ -213,6 +318,37 @@ public class LoginPanel extends JPanel {
         // Le code pour le bouton d'inscription est commenté dans le code original
         
         return formPanel;
+    }
+    
+    /**
+     * Méthode pour basculer la visibilité du mot de passe
+     */
+    private void togglePasswordVisibility() {
+        passwordVisible = !passwordVisible;
+        
+        if (passwordVisible) {
+            // Afficher le mot de passe
+            passwordField.setEchoChar((char) 0); // Désactive les caractères masqués
+            
+            // Changer l'icône ou le texte
+            if (lockIcon != null) {
+                togglePasswordButton.setIcon(lockIcon);
+            } else {
+                togglePasswordButton.setText("🔒");
+            }
+        } else {
+            // Masquer le mot de passe
+            passwordField.setEchoChar('•'); // Réactive les caractères masqués
+            
+            // Changer l'icône ou le texte
+            if (eyeIcon != null) {
+                togglePasswordButton.setIcon(eyeIcon);
+            } else {
+                togglePasswordButton.setText("👁");
+            }
+        }
+        
+        passwordField.repaint();
     }
     
     /**
@@ -240,6 +376,7 @@ public class LoginPanel extends JPanel {
             BorderFactory.createLineBorder(new Color(200, 200, 200)),
             BorderFactory.createEmptyBorder(8, 8, 8, 8)
         ));
+        field.setEchoChar('•'); // Définir le caractère d'affichage masqué
         return field;
     }
     
@@ -305,35 +442,36 @@ public class LoginPanel extends JPanel {
      */
 
     private void handleLogin(JFrame frame) {
-        String email = emailField.getText();
-        String password = new String(passwordField.getPassword());
+        String email = emailField.getText().trim();
+        String password = new String(passwordField.getPassword()).trim();
 
         if (email.isEmpty() || password.isEmpty()) {
             showErrorMessage("Veuillez remplir tous les champs.");
             return;
         }
 
-        // Connexion avec la base de données
+        // Vérification admin
+        if (email.equals("admin") && password.equals("123")) {
+            AdminDashboard dashboard = new AdminDashboard();
+            dashboard.setVisible(true);
+            frame.dispose(); // Ne pas oublier de fermer la fenêtre même pour admin
+            return;
+        }
+        else {
+
+        // Connexion à la base de données
         try (Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/javaswing_app", "root", "");
              PreparedStatement stmt = conn.prepareStatement("SELECT * FROM user WHERE email = ? AND password = ?")) {
 
             stmt.setString(1, email);
-            stmt.setString(2, password); // En production : hasher le mot de passe !
-            ResultSet rs = stmt.executeQuery();
+            stmt.setString(2, password); // Attention : doit correspondre au mot de passe stocké
 
+            ResultSet rs = stmt.executeQuery();
             if (rs.next()) {
                 int id = rs.getInt("id_user");
-
-                if (email.equals("admin") && password.equals("123")) {
-                    AdminDashboard dashboard = new AdminDashboard();
-                    dashboard.setVisible(true);
-                } else {
-                    ClientDashboard dashboard = new ClientDashboard(id);
-                    dashboard.setVisible(true);
-                }
-
+                ClientDashboard dashboard = new ClientDashboard(id);
+                dashboard.setVisible(true);
                 frame.dispose(); // Fermer la fenêtre de connexion
-
             } else {
                 showErrorMessage("Email ou mot de passe incorrect.");
             }
@@ -342,9 +480,27 @@ public class LoginPanel extends JPanel {
             ex.printStackTrace();
             showErrorMessage("Erreur de connexion à la base de données.");
         }
+        }
     }
 
 
+    private String encryptPassword(String password) {
+        try {
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            byte[] hash = md.digest(password.getBytes());
+            StringBuilder hexString = new StringBuilder();
+
+            // Convertir le tableau d'octets en chaîne hexadécimale
+            for (byte b : hash) {
+                String hex = Integer.toHexString(0xff & b);
+                if (hex.length() == 1) hexString.append('0');
+                hexString.append(hex);
+            }
+            return hexString.toString();
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        }
+    }
     
     /**
      * Affichage d'un message d'erreur stylisé

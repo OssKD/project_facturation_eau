@@ -21,6 +21,8 @@ import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
 
+import module.LoginPanel;
+
 public class ClientDashboard extends JFrame {
     private JPanel contentPanel;
     private JPanel menuPanel;
@@ -224,15 +226,24 @@ public class ClientDashboard extends JFrame {
     }
 
     private void handleLogout() {
-        int result = JOptionPane.showConfirmDialog(
+        int response = JOptionPane.showConfirmDialog(
             this,
-            "Voulez-vous vous déconnecter ?",
+            "Voulez-vous vraiment vous déconnecter?",
             "Confirmation",
-            JOptionPane.YES_NO_OPTION
+            JOptionPane.YES_NO_OPTION,
+            JOptionPane.QUESTION_MESSAGE
         );
-        if (result == JOptionPane.YES_OPTION) {
-            dispose();
-            // new LoginFrame();
+
+        if (response == JOptionPane.YES_OPTION) {
+            dispose(); // Fermer la fenêtre actuelle
+
+            // Créer une nouvelle fenêtre avec le LoginPanel
+            JFrame loginFrame = new JFrame("Connexion");
+            loginFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+            loginFrame.setSize(800, 600);
+            loginFrame.setLocationRelativeTo(null);
+            loginFrame.setContentPane(new LoginPanel(loginFrame)); // Passer le frame au panel
+            loginFrame.setVisible(true);
         }
     }
 

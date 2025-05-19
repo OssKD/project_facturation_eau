@@ -289,20 +289,5 @@ public class AdminDashboard extends JFrame {
         contentPanel.repaint();
     }
 
-    public static void main(String[] args) {
-        try {
-            // Appliquer un look and feel moderne
-            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-            
-            // Personnaliser certains éléments d'UI
-            UIManager.put("Button.arc", 8);
-            UIManager.put("Component.arc", 8);
-            UIManager.put("ProgressBar.arc", 8);
-            UIManager.put("TextComponent.arc", 8);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        
-        SwingUtilities.invokeLater(() -> new AdminDashboard());
-    }
+
 }

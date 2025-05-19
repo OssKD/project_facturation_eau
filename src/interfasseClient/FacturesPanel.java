@@ -2,12 +2,13 @@ package interfasseClient;
 
 import java.awt.*;
 import java.awt.event.*;
+import java.io.File;
 import java.sql.*;
 import javax.swing.*;
 import javax.swing.table.*;
-import java.util.*;
 
 import Config.PaymentForm;
+import java.awt.Desktop;
 
 public class FacturesPanel extends JPanel {
     private JTable facturesTable;
@@ -40,14 +41,14 @@ public class FacturesPanel extends JPanel {
         ) {
             @Override
             public boolean isCellEditable(int row, int column) {
-                return column == 4; // Seulement le bouton Télécharger est éditable
+                return column == 4; // Seulement la colonne "Télécharger" est éditable
             }
         };
 
         facturesTable = new JTable(tableModel);
-        facturesTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION); // sélection simple par ligne
+        facturesTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
-        // Ajouter les boutons "Télécharger"
+        // Bouton "Télécharger"
         facturesTable.getColumn("Télécharger").setCellRenderer(new ButtonRenderer());
         facturesTable.getColumn("Télécharger").setCellEditor(new ButtonEditor(new JCheckBox()));
 
@@ -119,9 +120,7 @@ public class FacturesPanel extends JPanel {
             return;
         }
 
-        int id_facture = (int) facturesTable.getValueAt(selectedRow, 0); // colonne 0 = id_facture
-
-        // Ouvrir le formulaire de paiement
+        int id_facture = (int) facturesTable.getValueAt(selectedRow, 0);
         PaymentForm payer = new PaymentForm();
         payer.setVisible(true);
     }
@@ -178,7 +177,23 @@ public class FacturesPanel extends JPanel {
     }
 
     private void downloadPDF(int id_facture) throws SQLException {
-        FactureEauGenerator pdfGenerator = new FactureEauGenerator();
-        pdfGenerator.generatePDF(id_facture);
+        String outputDir = "factures";
+        File dir = new File(outputDir);
+        if (!dir.exists()) {
+            dir.mkdirs();
+        }
+
+        String filePath = outputDir + "/facture_" + id_facture + ".pdf";
+        FactureEauGenerator.genererFacturePDF(id_facture, filePath);
+
+        // Ouvrir automatiquement le PDF (optionnel)
+        try {
+            if (Desktop.isDesktopSupported()) {
+                File pdfFile = new File(filePath);
+                Desktop.getDesktop().open(pdfFile);
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
     }
 }

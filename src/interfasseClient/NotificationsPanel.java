@@ -57,7 +57,7 @@ public class NotificationsPanel extends JPanel {
     // Charger depuis la BDD
     private void loadNotifications(int id) {
         notificationListModel.clear();
-        String sql = "SELECT message FROM notification WHERE id_user = ?"; // Utilisation de ? pour la requête préparée
+        String sql = "SELECT message FROM rappel WHERE id_user = ?"; // Utilisation de ? pour la requête préparée
         try (Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/javaswing_app", "root", "");
              PreparedStatement ps = conn.prepareStatement(sql)) {
              
@@ -74,7 +74,7 @@ public class NotificationsPanel extends JPanel {
 
     // Supprimer toutes les notifications
     private void clearNotifications() {
-        String sql = "DELETE FROM notification WHERE id_user = ?"; // Supprimer les notifications pour cet id_user
+        String sql = "DELETE FROM rappel WHERE id_user = ?"; // Supprimer les notifications pour cet id_user
         try (Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/javaswing_app", "root", "");
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
@@ -88,15 +88,4 @@ public class NotificationsPanel extends JPanel {
         }
     }
 
-    // Testeur indépendant
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> {
-            JFrame frame = new JFrame("Notifications");
-            frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-            frame.setSize(500, 350);
-            frame.setLocationRelativeTo(null);
-            frame.setContentPane(new NotificationsPanel(1)); // Ajustez pour passer l'id souhaité
-            frame.setVisible(true);
-        });
-    }
 }

@@ -46,6 +46,7 @@ public class ProfilePanel extends JPanel {
         compteField = createTextField();
 
         // Fields are not editable
+        emailField.setEditable(false);
         phoneField.setEditable(false);
         addressField.setEditable(false);
         nomField.setEditable(false);

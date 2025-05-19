@@ -1,15 +1,41 @@
 package module;
 
-import java.awt.*;
-import java.awt.event.*;
-import java.awt.geom.*;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
+import java.awt.AlphaComposite;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Composite;
+import java.awt.Cursor;
+import java.awt.Dimension;
+import java.awt.Font;
+import java.awt.GradientPaint;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
+import java.awt.RadialGradientPaint;
+import java.awt.RenderingHints;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.geom.Path2D;
+import java.awt.geom.Point2D;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Random;
-import javax.swing.*;
+
+import javax.swing.BorderFactory;
+import javax.swing.JButton;
+import javax.swing.JComponent;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JPasswordField;
+import javax.swing.JTextField;
+import javax.swing.Timer;
 import javax.swing.border.EmptyBorder;
 
 import Config.AjouteBD;
@@ -20,7 +46,7 @@ import Config.AjouteBD;
 public class RegisterPanel extends JPanel {
     // Composants de l'interface
     private JTextField nomField, prenomField, emailField, compteurField, adresseField, telephoneField;
-    private JPasswordField passwordField;
+    private JPasswordField passwordField,confirmPassword;
     private JButton registerButton, backButton;
     
     // Composants pour l'animation d'eau
@@ -110,11 +136,11 @@ public class RegisterPanel extends JPanel {
         formPanel.setBackground(new Color(255, 255, 255, 220));
         formPanel.setBorder(new EmptyBorder(30, 30, 30, 30));
         formPanel.setPreferredSize(new Dimension(400, 0));
-        
         GridBagConstraints gbc = new GridBagConstraints();
+        
         gbc.insets = new Insets(8, 10, 8, 10);
         gbc.fill = GridBagConstraints.HORIZONTAL;
-        
+
         // Titre d'inscription
         JLabel titleLabel = new JLabel("Inscription");
         titleLabel.setFont(new Font("Arial", Font.BOLD, 24));
@@ -124,30 +150,8 @@ public class RegisterPanel extends JPanel {
         gbc.gridwidth = 2;
         gbc.insets = new Insets(10, 10, 20, 10);
         formPanel.add(titleLabel, gbc);
-        
-        // Champ Nom
-        addFormField(formPanel, "Nom:", gbc, 1, nomField = createStyledTextField());
-        
-        // Champ Prénom
-        addFormField(formPanel, "Prénom:", gbc, 3, prenomField = createStyledTextField());
-        
-        // Champ Email
-        addFormField(formPanel, "Email:", gbc, 5, emailField = createStyledTextField());
-        
-        // Champ Numéro compteur
-        addFormField(formPanel, "Numéro compteur:", gbc, 7, compteurField = createStyledTextField());
-        
-        // Champ Adresse
-        addFormField(formPanel, "Adresse:", gbc, 9, adresseField = createStyledTextField());
-        
-        // Champ Téléphone
-        addFormField(formPanel, "Téléphone:", gbc, 11, telephoneField = createStyledTextField());
-        
-        // Champ Mot de passe
-        addFormField(formPanel, "Mot de passe:", gbc, 13, passwordField = createStyledPasswordField());
-        
-        // Boutons
-        // Bouton d'inscription
+
+        // Création des boutons
         registerButton = createStyledButton("S'inscrire");
         registerButton.setBackground(REGISTER_BUTTON_COLOR);
         registerButton.addMouseListener(new MouseAdapter() {
@@ -155,18 +159,12 @@ public class RegisterPanel extends JPanel {
             public void mouseEntered(MouseEvent e) {
                 registerButton.setBackground(REGISTER_BUTTON_HOVER);
             }
-            
             @Override
             public void mouseExited(MouseEvent e) {
                 registerButton.setBackground(REGISTER_BUTTON_COLOR);
             }
         });
-        gbc.gridx = 0;
-        gbc.gridy = 15;
-        gbc.gridwidth = 2;
-        gbc.insets = new Insets(15, 10, 10, 10);
-        formPanel.add(registerButton, gbc);
-        
+
         // Bouton retour
         backButton = createStyledButton("Retour");
         backButton.setBackground(BUTTON_COLOR);
@@ -175,16 +173,53 @@ public class RegisterPanel extends JPanel {
             public void mouseEntered(MouseEvent e) {
                 backButton.setBackground(BUTTON_HOVER);
             }
-            
             @Override
             public void mouseExited(MouseEvent e) {
                 backButton.setBackground(BUTTON_COLOR);
             }
         });
-        gbc.gridy = 16;
-        gbc.insets = new Insets(10, 10, 10, 10);
-        formPanel.add(backButton, gbc);
+
+        // Panneau pour contenir les boutons sur la même ligne
+        JPanel buttonPanel = new JPanel(new GridBagLayout());
+        buttonPanel.setOpaque(false);
         
+        GridBagConstraints buttonGbc = new GridBagConstraints();
+        buttonGbc.insets = new Insets(5, 5, 5, 5);
+        buttonGbc.fill = GridBagConstraints.HORIZONTAL;
+        buttonGbc.weightx = 1.0;
+
+        // Ajouter les boutons au panneau de boutons côte à côte
+        buttonGbc.gridx = 0;
+        buttonGbc.gridy = 0;
+        buttonPanel.add(registerButton, buttonGbc);
+
+        buttonGbc.gridx = 1;
+        buttonPanel.add(backButton, buttonGbc);
+
+        // Ajouter le panneau de boutons au formulaire juste après le titre
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        gbc.gridwidth = 2;
+        gbc.insets = new Insets(0, 10, 20, 10);
+        formPanel.add(buttonPanel, gbc);
+
+        // Champ Nom
+        addFormField(formPanel, "Nom:", gbc, 2, nomField = createStyledTextField());
+        // Champ Prénom
+        addFormField(formPanel, "Prénom:", gbc, 4, prenomField = createStyledTextField());
+        // Champ Email
+        addFormField(formPanel, "Email:", gbc, 6, emailField = createStyledTextField());
+        // Champ Numéro compteur
+        addFormField(formPanel, "Numéro compteur:", gbc, 8, compteurField = createStyledTextField());
+        // Champ Adresse
+        addFormField(formPanel, "Adresse:", gbc, 10, adresseField = createStyledTextField());
+        // Champ Téléphone
+        addFormField(formPanel, "Téléphone:", gbc, 12, telephoneField = createStyledTextField());
+        // Champ Mot de passe
+        addFormField(formPanel, "Mot de passe:", gbc, 14, passwordField = createStyledPasswordField());
+        // Champ Confirmer le mot de passe
+        addFormField(formPanel, "Confirmer le mot de passe:", gbc, 16, confirmPassword = createStyledPasswordField());
+
         // Configuration des actions
         registerButton.addActionListener(e -> handleRegister());
         backButton.addActionListener(e -> {
@@ -193,10 +228,9 @@ public class RegisterPanel extends JPanel {
             frame.revalidate();
             frame.repaint();
         });
-        
+
         return formPanel;
-    }
-    
+    } 
     /**
      * Ajoute un champ au formulaire avec son label
      */
@@ -209,8 +243,7 @@ public class RegisterPanel extends JPanel {
         gbc.gridwidth = 2;
         gbc.insets = new Insets(8, 10, 3, 10);
         panel.add(label, gbc);
-        
-        gbc.gridy = row + 1;
+        gbc.gridy = row + 1; // Alignez le champ sous le label
         gbc.insets = new Insets(0, 10, 8, 10);
         panel.add(field, gbc);
     }
@@ -283,6 +316,7 @@ public class RegisterPanel extends JPanel {
         String adresse = adresseField.getText();
         String telephone = telephoneField.getText();
         String password = new String(passwordField.getPassword());
+        String confirmpassword = new String(confirmPassword.getPassword());
 
         // Validation simple
         if (nom.isEmpty() || prenom.isEmpty() || email.isEmpty() || compteur.isEmpty()
@@ -305,13 +339,16 @@ public class RegisterPanel extends JPanel {
             showErrorMessage("Le mot de passe doit contenir au moins 6 caractères.");
             return;
         }
-
+        if (!password.equals(confirmpassword)) {
+            showErrorMessage("La confirmation du mot de passe est incorrecte");
+            return;
+        }
         // Générer un ID aléatoire (ou mieux : auto_increment depuis la base)
         int id = (int)(Math.random() * 100000); // à éviter en prod si non unique
 
         try {
             // Appel à la méthode de la classe AjouteBD
-            AjouteBD.Ajouteruser(id, nom, prenom,Integer.parseInt(compteur), email, password,Integer.parseInt(telephone), "U", adresse); // type = "U" pour user
+            AjouteBD.Ajouteruser(id, nom, prenom,Integer.parseInt(compteur), email, encryptPassword(password),Integer.parseInt(telephone), "U", adresse); // type = "U" pour user
             JOptionPane.showMessageDialog(this, "Inscription réussie !", "Succès", JOptionPane.INFORMATION_MESSAGE);
            
         } catch (Exception e) {
@@ -331,7 +368,29 @@ public class RegisterPanel extends JPanel {
             JOptionPane.ERROR_MESSAGE
         );
     }
-    
+  
+    private String encryptPassword(String password) {
+        try {
+            // 1. Obtention d'une instance de MessageDigest pour l'algorithme SHA-256
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            
+            // 2. Hachage du mot de passe passé en paramètre
+            byte[] hash = md.digest(password.getBytes());
+            
+            // 3. Conversion du tableau d'octets en une chaîne hexadécimale
+            StringBuilder hexString = new StringBuilder();
+            for (byte b : hash) {
+                String hex = Integer.toHexString(0xff & b);
+                if (hex.length() == 1) hexString.append('0'); // Ajout d'un zéro si besoin pour avoir 2 chiffres
+                hexString.append(hex);
+            }
+            
+            // 4. Retourne le mot de passe chiffré sous forme de chaîne hexadécimale
+            return hexString.toString();
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        }
+    }
     /**
      * Panneau pour l'animation d'eau
      */

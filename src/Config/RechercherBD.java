@@ -27,22 +27,4 @@ public class RechercherBD {
 		}
     }
 }
-//public static void getUserById(int id) {
-//    String query = "SELECT * FROM user WHERE id_user = ?";
-//    try (
-//        Connection cnx = ConnecterBD.connectBD();
-//        PreparedStatement stmt = cnx.prepareStatement(query)
-//    ) {
-//        stmt.setInt(1, id);                   // bddl '?'
-//        try (ResultSet rs = stmt.executeQuery()) {
-//            if (rs.next()) {
-//          
-//                // … zid li bghiti
-//            } else {
-//                System.out.println("Mafitch utilisateur b had ID.");
-//            }
-//        }
-//    } catch (Exception e) {
-//        System.out.println("Erreur: " + e.getMessage());
-//    }
-//}
+

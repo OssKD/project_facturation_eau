@@ -115,7 +115,7 @@ public class PaymentPanel extends JPanel {
         gbc.gridy = 2;
         gbc.gridx = 0;
         gbc.insets = new Insets(0, 0, 5, 0);
-        JLabel montantLabel = new JLabel("Montant à payer (€)");
+        JLabel montantLabel = new JLabel("Montant à payer (dh)");
         montantLabel.setFont(LABEL_FONT);
         montantLabel.setForeground(TEXT_COLOR);
         formPanel.add(montantLabel, gbc);
@@ -213,64 +213,115 @@ public class PaymentPanel extends JPanel {
     }
 
     private void verifierFacture() {
-        String idStr = idField.getText().trim();
-        String montantStr = montantField.getText().trim();
+     String idStr = idField.getText().trim();
+     String montantStr = montantField.getText().trim();
 
-        if (idStr.isEmpty() || montantStr.isEmpty()) {
-            statutLabel.setText("Veuillez remplir tous les champs requis");
-            statutLabel.setForeground(ERROR_COLOR);
-            return;
-        }
+     // Désactiver le bouton Payer par défaut
+     payerButton.setEnabled(false);
 
-        try {
-            int id = Integer.parseInt(idStr);
-            double montant = Double.parseDouble(montantStr);
+     if (idStr.isEmpty() || montantStr.isEmpty()) {
+         statutLabel.setText("Veuillez remplir tous les champs.");
+         statutLabel.setForeground(ERROR_COLOR);
+         return;
+     }
 
-            // Animation de chargement
-            statutLabel.setText("Vérification en cours...");
-            statutLabel.setForeground(MAIN_COLOR);
+     try {
+         int id = Integer.parseInt(idStr);
+         double montantPaye = Double.parseDouble(montantStr);
 
-            // Simuler un délai de connexion (peut être supprimé en production)
-            Timer timer = new Timer(800, e -> {
-                try {
-                    Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/javaswing_app", "root", "");
-                    PreparedStatement stmt = conn.prepareStatement(
-                            "SELECT * FROM facture WHERE id_facture = ? AND etat_payment = 'N'");
-                    stmt.setInt(1, id);
-                  
+         // Animation de chargement
+         statutLabel.setText("Vérification en cours...");
+         statutLabel.setForeground(MAIN_COLOR);
 
-                    ResultSet rs = stmt.executeQuery();
+         // Utilisation d'un swing Timer pour la simulation de délai (peut être retiré)
+         Timer timer = new Timer(800, e -> {
+             Connection conn = null;
+             PreparedStatement stmt = null;
+             ResultSet rs = null;
 
-                    if (rs.next()) {
-                        statutLabel.setText("✓ Facture trouvée et validée");
-                        statutLabel.setForeground(SUCCESS_COLOR);
-                        payerButton.setEnabled(true);
-                    } else {
-                        statutLabel.setText("✗ Facture non trouvée ou déjà payée");
-                        statutLabel.setForeground(ERROR_COLOR);
-                        payerButton.setEnabled(false);
-                    }
+             try {
+                 conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/javaswing_app", "root", "");
 
-                    rs.close();
-                    stmt.close();
-                    conn.close();
+                 // Première requête : Chercher la facture non payée avec l'ID donné
+                 String selectNonPayeeSql = "SELECT montant FROM facture WHERE id_facture = ? AND etat_payment = 'N'";
+                 stmt = conn.prepareStatement(selectNonPayeeSql);
+                 stmt.setInt(1, id);
+                 rs = stmt.executeQuery();
 
-                } catch (SQLException ex) {
-                    statutLabel.setText("Erreur de connexion à la base de données");
-                    statutLabel.setForeground(ERROR_COLOR);
-                    ex.printStackTrace();
-                }
-            });
-            timer.setRepeats(false);
-            timer.start();
+                 if (rs.next()) {
+                      // Facture non payée trouvée
+                     double montantDu = rs.getDouble("montant");
+                     rs.close(); // Fermer le premier Resultset
 
-        } catch (NumberFormatException ex) {
-            statutLabel.setText("Format de numéro ou de montant invalide");
-            statutLabel.setForeground(ERROR_COLOR);
-        }
-    }
+                     if (montantPaye >= montantDu) {
+                         statutLabel.setText("✓ Facture trouvée et montant suffisant.");
+                         statutLabel.setForeground(SUCCESS_COLOR);
+                         payerButton.setEnabled(true);
+                     } else {
+                         statutLabel.setText("✗ Montant payé insuffisant.");
+                         statutLabel.setForeground(ERROR_COLOR);
+                         payerButton.setEnabled(false);
+                     }
 
-   private void effectuerPaiement() {
+                 } else {
+                     // Facture pas trouvée avec etat_payment = 'N'.
+                     // Il faut maintenant vérifier si elle existe tout simplement pour savoir si elle est absente ou déjà payée.
+
+                     // Fermer le premier PreparedStatement avant de créer le second
+                     if (stmt != null) stmt.close();
+                     stmt = null; // Important pour le bloc finally
+
+                     // Seconde requête : Chercher la facture avec l'ID donné, quel que soit son état de paiement
+                     String selectAnySql = "SELECT etat_payment FROM facture WHERE id_facture = ?";
+                     stmt = conn.prepareStatement(selectAnySql);
+                     stmt.setInt(1, id);
+                     rs = stmt.executeQuery();
+
+                     if (rs.next()) {
+                         // La facture existe bien avec cet ID
+                         String etat = rs.getString("etat_payment"); // Récupérer l'état actuel
+                         rs.close(); // Fermer le second Resultset
+
+                         if ("N".equals(etat)) {
+                              statutLabel.setText("✗ Problème de vérification (état inattendu pour ID existant).");
+                             statutLabel.setForeground(ERROR_COLOR);
+                             payerButton.setEnabled(false);
+                         } else {
+                             // La facture existe mais son état n'est pas 'N', donc elle est considérée comme payée ou autre état.
+                             statutLabel.setText("ⓘ Facture ID " + id + " est déjà payée."); // Message pour déjà payé
+                             statutLabel.setForeground(ERROR_COLOR); // Utiliser une couleur d'information
+                             payerButton.setEnabled(false); // Le bouton Payer reste désactivé
+                         }
+                     } else {
+                         // La facture n'existe pas du tout avec cet ID
+                         statutLabel.setText("✗ Facture ID " + id + " non trouvée."); // Message pour non trouvé
+                         statutLabel.setForeground(ERROR_COLOR);
+                         payerButton.setEnabled(false);
+                     }
+                 }
+
+             } catch (SQLException ex) {
+                 statutLabel.setText("Erreur de base de données lors de la vérification.");
+                 statutLabel.setForeground(ERROR_COLOR);
+                 ex.printStackTrace();
+             } finally {
+                 // Fermer les ressources dans un bloc finally
+                 try { if (rs != null) rs.close(); } catch (SQLException ex) { ex.printStackTrace(); }
+                 try { if (stmt != null) stmt.close(); } catch (SQLException ex) { ex.printStackTrace(); }
+                 try { if (conn != null) conn.close(); } catch (SQLException ex) { ex.printStackTrace(); }
+             }
+         });
+         timer.setRepeats(false);
+         timer.start();
+
+     } catch (NumberFormatException ex) {
+         statutLabel.setText("Format d'identifiant ou de montant invalide.");
+         statutLabel.setForeground(ERROR_COLOR);
+         payerButton.setEnabled(false);
+     }
+ }
+ 
+    private void effectuerPaiement() {
     String idStr = idField.getText().trim();
     String montantStr = montantField.getText().trim();
     String methode = (String) methodePaiementCombo.getSelectedItem();
@@ -278,7 +329,7 @@ public class PaymentPanel extends JPanel {
     JPanel confirmPanel = new JPanel(new BorderLayout(10, 10));
     confirmPanel.add(new JLabel("<html><b>Détails du paiement :</b><br>" +
             "Facture n° : " + idStr + "<br>" +
-            "Montant : " + montantStr + " €<br>" +
+            "Montant : " + montantStr + " dh <br>" +
             "Méthode : " + methode + "</html>"), BorderLayout.CENTER);
 
     int confirm = JOptionPane.showConfirmDialog(this,
@@ -289,7 +340,7 @@ public class PaymentPanel extends JPanel {
 
     if (confirm != JOptionPane.YES_OPTION) return;
 
-    String serveurIP = "192.168.164.3"; // IP du serveur Banque
+    String serveurIP = "192.168.110.3"; // IP du serveur Banque
     int port = 5000;
 
     try {
@@ -329,7 +380,7 @@ public class PaymentPanel extends JPanel {
                     } catch (IOException ioEx) {
                         ioEx.printStackTrace();
                         statutLabel.setText("Erreur d'envoi au serveur");
-                        statutLabel.setForeground(ERROR_COLOR);
+                        statutLabel.setForeground(ERROR_COLOR);    
                     }
                 } else {
                     statutLabel.setText("Facture introuvable !");
@@ -357,22 +408,5 @@ public class PaymentPanel extends JPanel {
     }
 }
 
-    // Test indépendant
-    public static void main(String[] args) {
-        try {
-            // Appliquer le look and feel système
-            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        
-        SwingUtilities.invokeLater(() -> {
-            JFrame frame = new JFrame("Gestion des Paiements");
-            frame.setContentPane(new PaymentPanel());
-            frame.setSize(500, 600);
-            frame.setLocationRelativeTo(null);
-            frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-            frame.setVisible(true);
-        });
-    }
+   
 }
