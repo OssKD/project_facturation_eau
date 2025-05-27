@@ -22,11 +22,11 @@ import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
 
 import module.LoginPanel;
-
+import Config.Icons;
 public class ClientDashboard extends JFrame {
     private JPanel contentPanel;
     private JPanel menuPanel;
-    private int activeButtonIndex = -1;
+    private int activeButtonIndex = -1; 
     private int clientId;
 
     // Couleurs et polices
@@ -77,6 +77,7 @@ public class ClientDashboard extends JFrame {
     }
 
     private JPanel createMenuPanel() {
+    	
         JPanel panel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBackground(MENU_COLOR);
@@ -85,12 +86,12 @@ public class ClientDashboard extends JFrame {
         
         panel.add(createLogoPanel());
 
-        String[][] menuItems = {
-            {"\uD83D\uDC64", "Mon Profil"},
-            {"\uD83D\uDCB3", "Paiement"},
-            {"\uD83D\uDCB8", "Mes Factures"},
-            {"\uD83D\uDD14", "Notifications"},
-        };
+        String[][] menuItems = { 
+        	    {Icons.PROFILE, "Mon Profil"},
+        	    {Icons.PAYMENT, "Paiement"},
+        	    {Icons.BILLS, "Mes Factures"},
+        	    {Icons.NOTIFICATIONS, "Notifications"},
+        	}; 
         
         for (int i = 0; i < menuItems.length; i++) {
             JPanel item = createMenuButton(menuItems[i][0], menuItems[i][1], i);
@@ -108,8 +109,8 @@ public class ClientDashboard extends JFrame {
         logoPanel.setBackground(DARK_MAIN_COLOR);
         logoPanel.setMaximumSize(new Dimension(220, 80));
         logoPanel.setPreferredSize(new Dimension(220, 80));
-        JLabel logoLabel = new JLabel("\uD83D\uDCA7 Water Billing", SwingConstants.CENTER);
-        logoLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        JLabel logoLabel = new JLabel("\uD83D\uDCA7 Water Company", SwingConstants.CENTER);
+        logoLabel.setFont(new Font("Segoe UI Emoji", Font.BOLD, 16));
         logoLabel.setForeground(Color.WHITE);
         logoPanel.add(logoLabel, BorderLayout.CENTER);
         return logoPanel;
@@ -124,13 +125,14 @@ public class ClientDashboard extends JFrame {
         buttonPanel.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
         JLabel iconLabel = new JLabel(icon);
-        iconLabel.setFont(new Font("Segoe UI", Font.PLAIN, 18));
+        // Police spéciale pour emoji (important)
+        iconLabel.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 18));
         iconLabel.setForeground(Color.WHITE);
         iconLabel.setBorder(new EmptyBorder(0, 0, 0, 10));
 
         JLabel textLabel = new JLabel(text);
-        textLabel.setFont(MENU_FONT);
-        textLabel.setForeground(Color.WHITE);
+        textLabel.setFont(MENU_FONT); // ta police perso pour le texte
+        textLabel.setForeground(Color.WHITE); 
 
         JPanel content = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
         content.setOpaque(false);
@@ -165,16 +167,16 @@ public class ClientDashboard extends JFrame {
 
                 switch (text) {
                     case "Mon Profil":
-                    	   showPanel(new ProfilePanel(clientId));  // Remplacer par new ProfilePanel(clientId)
+                        showPanel(new ProfilePanel(clientId));
                         break;
                     case "Paiement":
-                        showPanel(new PaymentPanel()); // Remplacer par new PaiementPanel(clientId)
+                        showPanel(new PaymentPanel());
                         break;
                     case "Mes Factures":
-                        showPanel(new FacturesPanel(clientId)); // Remplacer par new FactureClientPanel(clientId)
+                        showPanel(new FacturesPanel(clientId));
                         break;
                     case "Notifications":
-                        showPanel(new NotificationsPanel(clientId)); // Remplacer par new NotificationClientPanel(clientId)
+                        showPanel(new NotificationsPanel(clientId));
                         break;
                     case "Déconnexion":
                         handleLogout();

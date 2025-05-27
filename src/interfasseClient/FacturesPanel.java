@@ -37,7 +37,7 @@ public class FacturesPanel extends JPanel {
 
         // Table sans checkbox
         tableModel = new DefaultTableModel(
-            new Object[]{"id_facture", "Mois", "Montant", "Statut", "Télécharger"}, 0
+            new Object[]{"id_facture", "Mois", "Montant", "Etat_payement", "Télécharger"}, 0
         ) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -47,7 +47,9 @@ public class FacturesPanel extends JPanel {
 
         facturesTable = new JTable(tableModel);
         facturesTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-
+        
+        //facture satatus
+        facturesTable.getColumn("Etat_payement").setCellRenderer(new StatutCellRenderer());
         // Bouton "Télécharger"
         facturesTable.getColumn("Télécharger").setCellRenderer(new ButtonRenderer());
         facturesTable.getColumn("Télécharger").setCellEditor(new ButtonEditor(new JCheckBox()));
@@ -60,7 +62,6 @@ public class FacturesPanel extends JPanel {
 
         // Actions des boutons
         filterButton.addActionListener(e -> filterFactures());
-        payerButton.addActionListener(e -> payerFactures());
     }
 
     private void loadFacturesData(int id) {
@@ -77,7 +78,7 @@ public class FacturesPanel extends JPanel {
                 int id_facture = rs.getInt("id_facture");
                 String mois = rs.getString("mois");
                 double montant = rs.getDouble("montant");
-                String statut = rs.getString("moitie");
+                String statut = rs.getString("etat_payment");
                 tableModel.addRow(new Object[]{id_facture, mois, montant, statut, "Télécharger"});
             }
 
@@ -97,13 +98,13 @@ public class FacturesPanel extends JPanel {
             stmt.setString(1, "%" + filterMonth + "%");
             stmt.setInt(2, id_user);
             ResultSet rs = stmt.executeQuery();
-
+ 
             tableModel.setRowCount(0);
             while (rs.next()) {
                 int id_facture = rs.getInt("id_facture");
                 String mois = rs.getString("mois");
                 double montant = rs.getDouble("montant");
-                String statut = rs.getString("moitie");
+                String statut = rs.getString("etat_payment");
                 tableModel.addRow(new Object[]{id_facture, mois, montant, statut, "Télécharger"});
             }
 
@@ -113,17 +114,6 @@ public class FacturesPanel extends JPanel {
         }
     }
 
-    private void payerFactures() {
-        int selectedRow = facturesTable.getSelectedRow();
-        if (selectedRow == -1) {
-            JOptionPane.showMessageDialog(this, "Veuillez sélectionner une facture à payer.");
-            return;
-        }
-
-        int id_facture = (int) facturesTable.getValueAt(selectedRow, 0);
-        PaymentForm payer = new PaymentForm();
-        payer.setVisible(true);
-    }
 
     class ButtonRenderer extends JButton implements TableCellRenderer {
         public ButtonRenderer() {
@@ -173,6 +163,29 @@ public class FacturesPanel extends JPanel {
         public Object getCellEditorValue() {
             isPushed = false;
             return label;
+        }
+    }
+
+    class StatutCellRenderer extends DefaultTableCellRenderer {
+        @Override
+        public Component getTableCellRendererComponent(JTable table, Object value,
+            boolean isSelected, boolean hasFocus, int row, int column) {
+
+            Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+
+            if (value != null) {
+                String statut = value.toString().trim().toUpperCase(); // met en majuscule pour P/N
+
+                if (statut.equals("P")) {
+                    c.setForeground(new Color(0, 128, 0)); // Vert
+                } else if (statut.equals("N")) {
+                    c.setForeground(Color.RED); // Rouge
+                } else {
+                    c.setForeground(Color.BLACK); // Valeur inconnue
+                }
+            }
+
+            return c;
         }
     }
 

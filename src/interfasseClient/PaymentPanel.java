@@ -51,7 +51,7 @@ public class PaymentPanel extends JPanel {
     private static final Color TEXT_COLOR = new Color(44, 62, 80); // Couleur du texte général (titres, labels)
 
     // Polices modernisées
-    private static final Font LABEL_FONT = new Font("Arial", Font.BOLD, 13);
+    private static final Font LABEL_FONT = new Font("Arial", Font.BOLD, 13); 
     private static final Font FIELD_FONT = new Font("Arial", Font.PLAIN, 14);
     private static final Font TITLE_FONT = new Font("Arial", Font.BOLD, 22);
     private static final Font BUTTON_FONT = new Font("Arial", Font.BOLD, 14);
@@ -149,7 +149,7 @@ public class PaymentPanel extends JPanel {
         gbc.gridy = 6;
         gbc.gridx = 0;
         statutLabel = new JLabel("Veuillez saisir les informations de votre facture");
-        statutLabel.setFont(FIELD_FONT);
+        statutLabel.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 18));
         statutLabel.setForeground(Color.GRAY);
         statutLabel.setHorizontalAlignment(SwingConstants.CENTER);
         gbc.insets = new Insets(10, 0, 15, 0);
@@ -283,7 +283,7 @@ public class PaymentPanel extends JPanel {
                          rs.close(); // Fermer le second Resultset
 
                          if ("N".equals(etat)) {
-                              statutLabel.setText("✗ Problème de vérification (état inattendu pour ID existant).");
+                             statutLabel.setText("✗ Problème de vérification (état inattendu pour ID existant).");
                              statutLabel.setForeground(ERROR_COLOR);
                              payerButton.setEnabled(false);
                          } else {
