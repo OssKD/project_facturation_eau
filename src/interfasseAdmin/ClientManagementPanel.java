@@ -583,7 +583,7 @@ public class ClientManagementPanel extends JPanel {
         JPanel panel = new JPanel(new BorderLayout(10, 0));
         
         JLabel iconLabel = new JLabel("\u2714"); // Symbole de coche
-        iconLabel.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        iconLabel.setFont(new Font("Segoe UI Emoji", Font.BOLD, 18));
         iconLabel.setForeground(new Color(46, 204, 113));
         panel.add(iconLabel, BorderLayout.WEST);
         
@@ -603,7 +603,7 @@ public class ClientManagementPanel extends JPanel {
         JPanel panel = new JPanel(new BorderLayout(10, 0));
         
         JLabel iconLabel = new JLabel("\u2716"); // Symbole X
-        iconLabel.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        iconLabel.setFont(new Font("Segoe UI Emoji", Font.BOLD, 18));
         iconLabel.setForeground(new Color(231, 76, 60));
         panel.add(iconLabel, BorderLayout.WEST);
         
@@ -623,7 +623,7 @@ public class ClientManagementPanel extends JPanel {
         JPanel panel = new JPanel(new BorderLayout(10, 0));
         
         JLabel iconLabel = new JLabel("\u26A0"); // Symbole d'avertissement
-        iconLabel.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        iconLabel.setFont(new Font("Segoe UI Emoji", Font.BOLD, 18));
         iconLabel.setForeground(new Color(243, 156, 18));
         panel.add(iconLabel, BorderLayout.WEST);
         

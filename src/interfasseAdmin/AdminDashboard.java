@@ -20,7 +20,7 @@ public class AdminDashboard extends JFrame {
     private final Color BACKGROUND_COLOR = new Color(245, 245, 245);
     private final Color MENU_COLOR = new Color(52, 73, 94);
     private final Color MENU_HOVER_COLOR = new Color(44, 62, 80);
-    private final Font MENU_FONT = new Font("Segoe UI", Font.PLAIN, 14);
+    private final Font MENU_FONT = new Font("Segoe UI Emoji", Font.PLAIN, 14);
 
     public AdminDashboard() {
         setTitle("Gestion de Facturation d'Eau - ((Administration))");
@@ -71,7 +71,7 @@ public class AdminDashboard extends JFrame {
         userPanel.add(userLabel);
         
         JLabel userIcon = new JLabel("\uD83D\uDC64"); // Emoji utilisateur
-        userIcon.setFont(new Font("Segoe UI", Font.PLAIN, 18));
+        userIcon.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 18));
         userIcon.setForeground(Color.WHITE);
         userPanel.add(userIcon);
         
@@ -94,7 +94,7 @@ public class AdminDashboard extends JFrame {
         logoPanel.setPreferredSize(new Dimension(220, 80));
         
         JLabel logoLabel = new JLabel("\uD83D\uDCA7 Water Billing", SwingConstants.CENTER);
-        logoLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        logoLabel.setFont(new Font("Segoe UI Emoji", Font.BOLD, 16));
         logoLabel.setForeground(Color.WHITE);
         logoPanel.add(logoLabel, BorderLayout.CENTER);
         
@@ -132,7 +132,7 @@ public class AdminDashboard extends JFrame {
     buttonPanel.setBorder(new EmptyBorder(8, 15, 8, 5));
     buttonPanel.setCursor(new Cursor(Cursor.HAND_CURSOR));
     JLabel iconLabel = new JLabel(icon);
-    iconLabel.setFont(new Font("Segoe UI", Font.PLAIN, 18));
+    iconLabel.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 18));
     iconLabel.setForeground(Color.WHITE);
     iconLabel.setBorder(new EmptyBorder(0, 0, 0, 10));
     JLabel textLabel = new JLabel(text);

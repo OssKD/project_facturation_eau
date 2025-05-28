@@ -1,233 +1,262 @@
 package interfasseAdmin;
 
-import java.awt.BorderLayout;
-import java.awt.FlowLayout;
-import java.awt.Font;
+import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+import java.awt.*;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
 import java.util.Map;
-
-import javax.swing.JButton;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JTable;
-import javax.swing.JTextField;
-import javax.swing.SwingConstants;
-import javax.swing.table.DefaultTableModel;
 
 public class GlobalNotificationsPanel extends JPanel {
     private JTable table;
     private DefaultTableModel tableModel;
-    private JTextField filterField;
-    private ServerSocket serverSocket; // Socket pour l'écoute
-    private int lastUserId = -1;
+    private ServerSocket serverSocket;
+
     public GlobalNotificationsPanel() {
         setLayout(new BorderLayout());
+
         JLabel title = new JLabel("Notifications Globales", SwingConstants.CENTER);
         title.setFont(new Font("Arial", Font.BOLD, 20));
         add(title, BorderLayout.NORTH);
 
-        // Tableau pour afficher les messages
-        tableModel = new DefaultTableModel(new Object[]{"ID", "Nom", "Message"}, 0);
+        // Ajout d'une colonne id_facture
+        tableModel = new DefaultTableModel(new Object[]{"ID", "Nom", "Message", "ID Facture"}, 0);
         table = new JTable(tableModel);
         add(new JScrollPane(table), BorderLayout.CENTER);
 
-        // Charger les messages dès le début
-        
         chargerTout();
-        
-        // Boutons
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+
+        JPanel buttonPanel = new JPanel(new FlowLayout());
         JButton btnEnvoyerRappel = new JButton("Envoyer Rappel");
-      
-        JButton btnActualiser = new JButton("Actualiser"); // Nouveau bouton
+        JButton btnActualiser = new JButton("Actualiser");
+
         buttonPanel.add(btnEnvoyerRappel);
-        
         buttonPanel.add(btnActualiser);
         add(buttonPanel, BorderLayout.SOUTH);
- 
 
-        // Actions
         btnEnvoyerRappel.addActionListener(e -> {
             int selectedRow = table.getSelectedRow();
             if (selectedRow != -1) {
-                // Récupérer l'ID de la ligne sélectionnée
-                String idStr = table.getValueAt(selectedRow, 0).toString(); // "Utilisateur X"
-                String message=table.getValueAt(selectedRow, 2).toString();
-            // Extraire l'ID numérique à partir du texte "Utilisateur X"
-                int id = -1;
                 try {
-                    id = Integer.parseInt(idStr.replace("Utilisateur ", "").trim());
-                } catch (NumberFormatException ex) {
-                    JOptionPane.showMessageDialog(this, "ID utilisateur invalide : " + idStr);
-                    return;
-                }
+                    int idUser = Integer.parseInt(table.getValueAt(selectedRow, 0).toString());
+                    String message = table.getValueAt(selectedRow, 2).toString();
+                    int idFacture = Integer.parseInt(table.getValueAt(selectedRow, 3).toString());
 
-                // Appeler la méthode d’envoi de rappel ou afficher un message
-                EnvoyermessageRappel(message ,Integer.parseInt(idStr));
-                
+                    EnvoyermessageRappel(message, idUser, idFacture);
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(this, "Erreur de récupération des données sélectionnées.");
+                }
             } else {
-                JOptionPane.showMessageDialog(this, "Veuillez sélectionner une ligne pour envoyer un rappel.");
+                JOptionPane.showMessageDialog(this, "Veuillez sélectionner une ligne.");
             }
         });
 
-      
         btnActualiser.addActionListener(e -> {
-            // Relancer les messages de notification
             if (serverSocket == null || serverSocket.isClosed()) {
-                new Thread(this::recevoirMessages).start(); // Démarrer l'écoute si ce n'est pas déjà fait
+                new Thread(this::recevoirMessages).start();
             } else {
-                JOptionPane.showMessageDialog(this, "Le serveur est déjà en cours d'écoute.");
+                JOptionPane.showMessageDialog(this, "Le serveur écoute déjà.");
             }
         });
     }
-     public void recevoirMessages() {
+
+    private void recevoirMessages() {
         try {
-            serverSocket = new ServerSocket(5000);
-            System.out.println("✅ Serveur Banque en attente de connexions...");
+            serverSocket = new ServerSocket(6000);
+            System.out.println("✅ Serveur en attente de messages...");
 
             while (true) {
                 try (Socket clientSocket = serverSocket.accept();
                      ObjectInputStream in = new ObjectInputStream(clientSocket.getInputStream())) {
-                     
-                    System.out.println("Connexion acceptée de " + clientSocket.getInetAddress());
 
-                    // Lecture d'un message string
                     String messageComplet = (String) in.readObject();
-                    // Lecture de l'objet Map
                     Map<String, Object> paiement = (Map<String, Object>) in.readObject();
 
-                    System.out.println("📥 Message reçu : " + messageComplet);
-                    System.out.println("📥 Données de paiement reçues : ");
-                    paiement.forEach((cle, valeur) -> System.out.println("  " + cle + " = " + valeur));
-
-                    // Récupérer les valeurs spécifiques
                     Integer id = (Integer) paiement.get("idUser");
                     Integer id_facture = (Integer) paiement.get("idFacture");
                     String description = (String) paiement.get("description");
-                    String mes=testMessage(description);
-                    
-                    // Vous pouvez traiter les données ici
-                     storeMessageInDatabase(mes, id); // Exemple de traitement
-                } catch (IOException | ClassNotFoundException e) {
-                    System.err.println("Erreur lors de la réception des messages : " + e.getMessage());
+                    String message = testMessage(description);
+
+                    storeMessageInDatabase(message, id);
+
+                    if ("A".equals(description)) {
+                        mettreAJourEtatPaiement(id_facture);
+                        Integer montant = (Integer) paiement.get("montant");
+                        insererPaiementDansBase(id, id_facture, montant);
+                    }
+
+                } catch (Exception e) {
+                    System.err.println("Erreur de lecture socket : " + e.getMessage());
                 }
             }
         } catch (IOException e) {
-            System.err.println("Erreur de création du serveur : " + e.getMessage());
+            System.err.println("Erreur serveur socket : " + e.getMessage());
         }
     }
- 
-     private String testMessage(String message) {
-         switch (message) {
-         case "A":
-             return "payment bian effectuer .";
-         case "B":
-             return "Erreur : montant insufisant";
-         case "C":
-             return "Erreur :il n'ys pas un compte";
-         default:
-             return "Type de message non reconnu.";
-     }
-     }
-     
-     private void storeMessageInDatabase(String message , int id) {
-        String sql = "INSERT INTO notification (id_user,message) VALUES (?,?)"; // Assurez-vous que la table "notification" existe
-        try (Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/javaswing_app", "root", "");
+
+    private String testMessage(String code) {
+        return switch (code) {
+            case "A" -> "✅ Paiement bien effectué.";
+            case "B" -> "❌ Erreur : montant insuffisant.";
+            case "C" -> "❌ Erreur : compte inexistant.";
+            default -> "⚠️ Message non reconnu.";
+        };
+    }
+
+    private void insererPaiementDansBase(int idUser, int idFacture, int montant) {
+        String sql = "INSERT INTO payement1 (id_user, id_facture, montant_paiement) VALUES (?, ?, ?)";
+        try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
-        	stmt.setInt(1, id);
+            stmt.setInt(1, idUser);
+            stmt.setInt(2, idFacture);
+            stmt.setInt(3, montant);
+            stmt.executeUpdate();
+            System.out.println("✅ Paiement inséré.");
+        } catch (SQLException e) {
+            System.err.println("❌ Erreur insertion paiement : " + e.getMessage());
+        }
+    }
+
+    private void mettreAJourEtatPaiement(int idFacture) {
+        String sql = "UPDATE facture SET etat_payment = 'P' WHERE id_facture = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, idFacture);
+            stmt.executeUpdate();
+            System.out.println("✅ État paiement mis à jour.");
+        } catch (SQLException e) {
+            System.err.println("❌ Erreur update paiement : " + e.getMessage());
+        }
+    }
+
+    private void storeMessageInDatabase(String message, int idUser) {
+        String sql = "INSERT INTO notification (id_user, message) VALUES (?, ?)";
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, idUser);
             stmt.setString(2, message);
             stmt.executeUpdate();
-            System.out.println("✅ Message stocké dans la base de données.");
-        } catch (SQLException ex) {
-            ex.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Erreur lors du stockage du message en base de données.");
+            System.out.println("✅ Notification enregistrée.");
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
     }
-     
-     private void EnvoyermessageRappel(String message , int id ) {
-         String sql = "INSERT INTO rappel (id_user,message) VALUES (?,?)"; // Assurez-vous que la table "notification" existe
-         try (Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/javaswing_app", "root", "");
-              PreparedStatement stmt = conn.prepareStatement(sql)) {
-         	stmt.setInt(1, id);
-             stmt.setString(2, message);
-             stmt.executeUpdate();
-             System.out.println("✅ Message stocké dans la base de données.");
-         } catch (SQLException ex) {
-             ex.printStackTrace();
-             JOptionPane.showMessageDialog(this, "Erreur lors du stockage du message en base de données.");
-         }
-     }
-     
-    private void chargerMessages() {
-    // Ne pas effacer le tableau ici !
-    try (Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/javaswing_app", "root", "");
-         PreparedStatement stmt = conn.prepareStatement("SELECT u.nom, n.id_user, n.message  FROM notification n JOIN user u ON n.id_user = u.id_user;")) {
-        ResultSet rs = stmt.executeQuery();
-        while (rs.next()) {
-            int id = rs.getInt("id_user");
-            String nom = rs.getString("nom");
-            String message = rs.getString("message");
-            tableModel.addRow(new Object[]{ id, nom, message });
-        }
-    } catch (SQLException ex) {
-        ex.printStackTrace();
-        JOptionPane.showMessageDialog(this, "Erreur lors du chargement des messages.");
-    }
-    }
-	
-	private void chargerRappels() {
-	     // Ne pas effacer le tableau ici non plus
-	String sql = "SELECT u.nom, f.id_user, f.mois FROM facture f JOIN user u ON f.id_user = u.id_user WHERE etat_payment='N'";
-	try (Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/javaswing_app", "root", "");
-	     PreparedStatement stmt = conn.prepareStatement(sql);
-	     ResultSet rs = stmt.executeQuery()) {
-	
-	    LocalDate currentDate = LocalDate.now();
-	    while (rs.next()) {
-	        int idUser = rs.getInt("id_user");
-	        String nom = rs.getString("nom");
-	        String moisStr = rs.getString("mois");
-	        try {
-	            LocalDate moisFacture;
-	            if (moisStr.length() == 7) {
-	                moisFacture = LocalDate.parse(moisStr + "-01", DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-	            } else {
-	                moisFacture = LocalDate.parse(moisStr, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-	            }
-	            long diffDays = ChronoUnit.DAYS.between(moisFacture, currentDate);
-	            if (diffDays > 0 && diffDays < 15) {
-	                String message = "⚠️ Facture impayée depuis " + diffDays + " jours.";
-	                tableModel.addRow(new Object[]{idUser, nom, message});
-	            }
-	        } catch (DateTimeParseException e) {
-	            System.err.println("Format de date invalide pour id_user=" + idUser + " : " + moisStr);
-	        }
-	    }
-	
-	} catch (SQLException ex) {
-	    ex.printStackTrace();
-	    JOptionPane.showMessageDialog(this, "❌ Erreur lors du chargement des rappels.");
-	    }
-	}
 
-	private void chargerTout() {
-	    tableModel.setRowCount(0); // Effacer une seule fois
-	    chargerMessages();
-	    chargerRappels();
-	}
-	
+    private void EnvoyermessageRappel(String message, int idUser, int idFacture) {
+        String checkSQL = "SELECT COUNT(*) FROM rappel WHERE id_user = ? AND id_facture = ?";
+        String insertSQL = "INSERT INTO rappel (id_user, id_facture, date_rappel) VALUES (?, ?, NOW())";
+        String notificationSQL = "INSERT INTO notification (id_user, message) VALUES (?, ?)";
+
+        try (Connection conn = getConnection()) {
+            try (PreparedStatement checkStmt = conn.prepareStatement(checkSQL)) {
+                checkStmt.setInt(1, idUser);
+                checkStmt.setInt(2, idFacture);
+                ResultSet rs = checkStmt.executeQuery();
+
+                if (rs.next() && rs.getInt(1) == 0) {
+                    try (PreparedStatement insertStmt = conn.prepareStatement(insertSQL)) {
+                        insertStmt.setInt(1, idUser);
+                        insertStmt.setInt(2, idFacture);
+                        insertStmt.executeUpdate();
+                    }
+
+                    try (PreparedStatement notifStmt = conn.prepareStatement(notificationSQL)) {
+                        notifStmt.setInt(1, idUser);
+                        notifStmt.setString(2, message);
+                        notifStmt.executeUpdate();
+                    }
+
+                    System.out.println("✅ Rappel et notification envoyés.");
+                } else {
+                    System.out.println("ℹ️ Rappel déjà existant.");
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void chargerMessages() {
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(
+                     "SELECT u.nom, n.id_user, n.message FROM notification n JOIN user u ON n.id_user = u.id_user")) {
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                int id = rs.getInt("id_user");
+                String nom = rs.getString("nom");
+                String msg = rs.getString("message");
+                tableModel.addRow(new Object[]{id, nom, msg, ""}); // Pas d'ID facture
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void chargerRappels() {
+        String sql = "SELECT u.nom, f.id_user, f.id_facture, f.mois, f.etat_payment " +
+                     "FROM facture f JOIN user u ON f.id_user = u.id_user";
+
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+
+            LocalDate now = LocalDate.now();
+
+            while (rs.next()) {
+                int idUser = rs.getInt("id_user");
+                int idFacture = rs.getInt("id_facture");
+                String nom = rs.getString("nom");
+                String moisStr = rs.getString("mois");
+                String etat = rs.getString("etat_payment");
+
+                LocalDate mois = LocalDate.parse(moisStr.length() == 7 ? moisStr + "-01" : moisStr,
+                        DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+                long jours = ChronoUnit.DAYS.between(mois, now);
+
+                if ("N".equals(etat) && jours > 20) {
+                    String checkSQL = "SELECT COUNT(*) FROM rappel WHERE id_user = ? AND id_facture = ?";
+                    try (PreparedStatement checkStmt = conn.prepareStatement(checkSQL)) {
+                        checkStmt.setInt(1, idUser);
+                        checkStmt.setInt(2, idFacture);
+                        ResultSet rsCheck = checkStmt.executeQuery();
+                        if (rsCheck.next() && rsCheck.getInt(1) == 0) {
+                            String insertSQL = "INSERT INTO rappel (id_user, id_facture, date_rappel) VALUES (?, ?, NOW())";
+                            try (PreparedStatement insStmt = conn.prepareStatement(insertSQL)) {
+                                insStmt.setInt(1, idUser);
+                                insStmt.setInt(2, idFacture);
+                                insStmt.executeUpdate();
+                            }
+                        }
+                    }
+                    tableModel.addRow(new Object[]{idUser, nom, "⚠️ Facture impayée depuis " + jours + " jours", idFacture});
+                } else if ("O".equals(etat)) {
+                    String delSQL = "DELETE FROM rappel WHERE id_user = ? AND id_facture = ?";
+                    try (PreparedStatement delStmt = conn.prepareStatement(delSQL)) {
+                        delStmt.setInt(1, idUser);
+                        delStmt.setInt(2, idFacture);
+                        delStmt.executeUpdate();
+                    }
+                }
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void chargerTout() {
+        tableModel.setRowCount(0);
+        chargerMessages();
+        chargerRappels();
+    }
+
+    private Connection getConnection() throws SQLException {
+        return DriverManager.getConnection("jdbc:mysql://localhost:3306/javaswing_app", "root", "");
+    }
 }

@@ -61,9 +61,7 @@ public class LoginPanel extends JPanel {
     private JButton togglePasswordButton;
     private boolean passwordVisible = false;
     
-    // Icônes pour le bouton de visibilité du mot de passe
-    private ImageIcon eyeIcon;
-    private ImageIcon lockIcon;
+
     
     // Composants pour l'animation d'eau
     private ArrayList<WaterDrop> waterDrops;
@@ -87,9 +85,7 @@ public class LoginPanel extends JPanel {
         setLayout(new BorderLayout());
         setBackground(Color.WHITE);
         
-        // Chargement des icônes
-        loadIcons();
-      
+ 
         // Initialisation de l'animation d'eau
         initWaterAnimation();
         
@@ -104,25 +100,7 @@ public class LoginPanel extends JPanel {
     /**
      * Chargement des icônes pour l'interface
      */
-    private void loadIcons() {
-        try {
-            // Chargement et redimensionnement des icônes
-            ImageIcon originalEyeIcon = new ImageIcon(getClass().getResource("/images/eye.png"));
-            ImageIcon originalLockIcon = new ImageIcon(getClass().getResource("/images/lock.png"));
-            
-            // Redimensionner les icônes (ajuster la taille selon vos besoins)
-            Image eyeImage = originalEyeIcon.getImage().getScaledInstance(20, 20, Image.SCALE_SMOOTH);
-            Image lockImage = originalLockIcon.getImage().getScaledInstance(20, 20, Image.SCALE_SMOOTH);
-            
-            eyeIcon = new ImageIcon(eyeImage);
-            lockIcon = new ImageIcon(lockImage);
-        } catch (Exception e) {
-            // En cas d'erreur, utiliser des caractères Unicode comme fallback
-            System.err.println("Erreur lors du chargement des icônes: " + e.getMessage());
-            eyeIcon = null;
-            lockIcon = null;
-        }
-    }
+
     
     /**
      * Initialisation de l'animation d'eau
@@ -230,16 +208,9 @@ public class LoginPanel extends JPanel {
         togglePasswordButton.setContentAreaFilled(false);
         togglePasswordButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
         togglePasswordButton.setToolTipText("Afficher/masquer le mot de passe");
-        
-        // Définir l'icône initiale (ou texte de secours si l'icône n'est pas disponible)
-        if (eyeIcon != null) {
-            togglePasswordButton.setIcon(eyeIcon);
-        } else {
-            togglePasswordButton.setText("👁");
-            togglePasswordButton.setFont(new Font("Arial", Font.PLAIN, 18));
-            togglePasswordButton.setForeground(DEEP_BLUE);
-        }
-        
+        togglePasswordButton.setText("👁");
+        togglePasswordButton.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 18));
+        togglePasswordButton.setForeground(DEEP_BLUE);
         togglePasswordButton.addActionListener(e -> togglePasswordVisibility());
         
         passwordPanel.add(togglePasswordButton, BorderLayout.EAST);
@@ -329,23 +300,13 @@ public class LoginPanel extends JPanel {
         if (passwordVisible) {
             // Afficher le mot de passe
             passwordField.setEchoChar((char) 0); // Désactive les caractères masqués
-            
-            // Changer l'icône ou le texte
-            if (lockIcon != null) {
-                togglePasswordButton.setIcon(lockIcon);
-            } else {
-                togglePasswordButton.setText("🔒");
+            togglePasswordButton.setText("🔒");
             }
-        } else {
+        else {
             // Masquer le mot de passe
-            passwordField.setEchoChar('•'); // Réactive les caractères masqués
+            passwordField.setEchoChar('•'); // Réactive les caractères masqué
+            togglePasswordButton.setText("👁");
             
-            // Changer l'icône ou le texte
-            if (eyeIcon != null) {
-                togglePasswordButton.setIcon(eyeIcon);
-            } else {
-                togglePasswordButton.setText("👁");
-            }
         }
         
         passwordField.repaint();

@@ -340,7 +340,7 @@ public class PaymentPanel extends JPanel {
 
     if (confirm != JOptionPane.YES_OPTION) return;
 
-    String serveurIP = "192.168.110.3"; // IP du serveur Banque
+    String serveurIP = "localhost"; // IP du serveur Banque
     int port = 5000;
 
     try {

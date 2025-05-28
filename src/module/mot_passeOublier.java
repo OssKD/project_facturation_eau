@@ -3,24 +3,32 @@ package module;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.geom.Path2D;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Random;
 import javax.swing.*;
+
+
 
 public class mot_passeOublier extends JPanel {
     private JTextField emailField;
     private JTextField codeField;
     private JPasswordField newPasswordField;
-    private JButton sendCodeButton, confirmButton, backButton;
+    private JButton sendCodeButton, toggleNewPasswordButton, confirmButton, backButton;
     private ArrayList<WaterDrop> waterDrops;
     private Timer animationTimer;
     private String confirmationCode;
     private final JFrame parentFrame;
     private final SendMailExample mailSender = new SendMailExample();
+    private boolean passwordVisible = false;
 
     private final int MAX_DROPS = 30;
     private final Color BUTTON_COLOR = new Color(0, 119, 182);
     private final Color BUTTON_HOVER = new Color(3, 82, 123);
+    private static final Color DEEP_BLUE = new Color(0, 102, 153);
 
     public mot_passeOublier(JFrame frame) {
         this.parentFrame = frame;
@@ -96,13 +104,33 @@ public class mot_passeOublier extends JPanel {
         gbc.insets = new Insets(0, 10, 15, 10);
         formPanel.add(codeField, gbc);
 
-        gbc.insets = new Insets(10, 10, 5, 10);
+        JLabel newPasswordLabel = new JLabel("Nouveau mot de passe:");
+        newPasswordLabel.setFont(new Font("Arial", Font.PLAIN, 14));
+        newPasswordLabel.setForeground(DEEP_BLUE);
         gbc.gridy++;
-        formPanel.add(new JLabel("Nouveau mot de passe:"), gbc);
+        gbc.insets = new Insets(10, 10, 5, 10);
+        formPanel.add(newPasswordLabel, gbc);
+
+        JPanel newPasswordPanel = new JPanel(new BorderLayout(5, 0));
+        newPasswordPanel.setBackground(new Color(255, 255, 255, 0));
         newPasswordField = createStyledPasswordField();
+        newPasswordPanel.add(newPasswordField, BorderLayout.CENTER);
+
+        toggleNewPasswordButton = new JButton();
+        toggleNewPasswordButton.setFocusPainted(false);
+        toggleNewPasswordButton.setBorderPainted(false);
+        toggleNewPasswordButton.setContentAreaFilled(false);
+        toggleNewPasswordButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        toggleNewPasswordButton.setToolTipText("Afficher/masquer le mot de passe");
+        toggleNewPasswordButton.setText("👁");
+        toggleNewPasswordButton.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 18));
+        toggleNewPasswordButton.setForeground(DEEP_BLUE);
+        toggleNewPasswordButton.addActionListener(e -> togglePasswordVisibility(newPasswordField, toggleNewPasswordButton));
+        newPasswordPanel.add(toggleNewPasswordButton, BorderLayout.EAST);
+
         gbc.gridy++;
         gbc.insets = new Insets(0, 10, 20, 10);
-        formPanel.add(newPasswordField, gbc);
+        formPanel.add(newPasswordPanel, gbc);
 
         confirmButton = createStyledButton("Confirmer");
         gbc.gridy++;
@@ -115,7 +143,13 @@ public class mot_passeOublier extends JPanel {
         formPanel.add(backButton, gbc);
 
         sendCodeButton.addActionListener(e -> sendConfirmationCode());
-        confirmButton.addActionListener(e -> confirmNewPassword());
+        confirmButton.addActionListener(e -> {
+            try {
+                confirmNewPassword();
+            } catch (SQLException e1) {
+                e1.printStackTrace();
+            }
+        });
 
         backButton.addActionListener(e -> {
             if (parentFrame != null) {
@@ -147,7 +181,21 @@ public class mot_passeOublier extends JPanel {
             BorderFactory.createLineBorder(new Color(200, 200, 200)),
             BorderFactory.createEmptyBorder(8, 8, 8, 8)
         ));
+        field.setEchoChar('•');
         return field;
+    }
+
+    private void togglePasswordVisibility(JPasswordField passwordField, JButton toggleButton) {
+        passwordVisible = !passwordVisible;
+        toggleButton.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 16));
+        if (passwordVisible) {
+            passwordField.setEchoChar((char) 0);
+            toggleButton.setText("🔓");
+        } else {
+            passwordField.setEchoChar('•');
+            toggleButton.setText("👁");
+        }
+        passwordField.repaint();
     }
 
     private JButton createStyledButton(String text) {
@@ -176,19 +224,18 @@ public class mot_passeOublier extends JPanel {
             showErrorMessage("Veuillez entrer une adresse email.");
             return;
         }
-
         if (!email.contains("@")) {
             showErrorMessage("Email invalide.");
             return;
         }
-
         confirmationCode = String.valueOf(new Random().nextInt(900000) + 100000);
         String title = "Code de Réinitialisation du Mot de Passe";
         String message = "Votre code de confirmation est: " + confirmationCode;
         mailSender.sendRecoveryEmail(email, title, message);
     }
 
-    private void confirmNewPassword() {
+    private void confirmNewPassword() throws SQLException {
+        String email = emailField.getText();
         String enteredCode = codeField.getText();
         String newPassword = new String(newPasswordField.getPassword());
 
@@ -196,19 +243,22 @@ public class mot_passeOublier extends JPanel {
             showErrorMessage("Veuillez remplir tous les champs.");
             return;
         }
-
         if (newPassword.length() < 6) {
             showErrorMessage("Le mot de passe doit contenir au moins 6 caractères.");
             return;
         }
-
         if (confirmationCode != null && confirmationCode.equals(enteredCode)) {
             int option = JOptionPane.showConfirmDialog(this,
                     "Voulez-vous changer votre mot de passe ?",
                     "Confirmation",
                     JOptionPane.YES_NO_OPTION);
-
             if (option == JOptionPane.YES_OPTION) {
+                try (Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/javaswing_app", "root", "");
+                     PreparedStatement updateStmt = conn.prepareStatement("UPDATE user SET password = ? WHERE email = ?")) {
+                    updateStmt.setString(1, newPassword);
+                    updateStmt.setString(2, email);
+                    updateStmt.executeUpdate();
+                }
                 JOptionPane.showMessageDialog(this, "Mot de passe réinitialisé avec succès !", "Succès", JOptionPane.INFORMATION_MESSAGE);
                 if (parentFrame != null) {
                     parentFrame.setContentPane(new LoginPanel(parentFrame));
@@ -228,20 +278,13 @@ public class mot_passeOublier extends JPanel {
     private class WaterDrop {
         private int x, y, size;
         private float speed, alpha;
-
         public WaterDrop(int x, int y, int size, float speed, float alpha) {
-            this.x = x;
-            this.y = y;
-            this.size = size;
-            this.speed = speed;
-            this.alpha = alpha;
+            this.x = x; this.y = y; this.size = size; this.speed = speed; this.alpha = alpha;
         }
-
         public void move() {
             y += speed;
             x += Math.sin(y * 0.05) * 0.5;
         }
-
         public void draw(Graphics2D g2d) {
             Composite originalComposite = g2d.getComposite();
             g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, alpha));
@@ -253,11 +296,9 @@ public class mot_passeOublier extends JPanel {
 
     private class WaterAnimationPanel extends JPanel {
         private final GradientPaint BACKGROUND_GRADIENT = new GradientPaint(0, 0, new Color(240, 248, 255), 0, 600, new Color(179, 229, 252));
-
         public WaterAnimationPanel() {
             setOpaque(false);
         }
-
         protected void paintComponent(Graphics g) {
             super.paintComponent(g);
             Graphics2D g2d = (Graphics2D) g.create();
@@ -270,7 +311,6 @@ public class mot_passeOublier extends JPanel {
             }
             g2d.dispose();
         }
-
         private void drawWaterWave(Graphics2D g2d) {
             int width = getWidth();
             int height = getHeight();

@@ -22,7 +22,7 @@ import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
 
 import module.LoginPanel;
-import Config.Icons;
+
 public class ClientDashboard extends JFrame {
     private JPanel contentPanel;
     private JPanel menuPanel;
@@ -35,7 +35,7 @@ public class ClientDashboard extends JFrame {
     private final Color BACKGROUND_COLOR = new Color(245, 245, 245);
     private final Color MENU_COLOR = new Color(52, 73, 94);
     private final Color MENU_HOVER_COLOR = new Color(44, 62, 80);
-    private final Font MENU_FONT = new Font("Segoe UI", Font.PLAIN, 14);
+    private final Font MENU_FONT = new Font("Segoe UI Emoji", Font.PLAIN, 14);
 
     public ClientDashboard(int clientId) {
         this.clientId = clientId;
@@ -68,7 +68,7 @@ public class ClientDashboard extends JFrame {
         panel.setBorder(new EmptyBorder(10, 20, 10, 20));
 
         JLabel title = new JLabel("Tableau de Bord - Espace Client");
-        title.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        title.setFont(new Font("Segoe UI Emoji", Font.BOLD, 18));
         title.setForeground(Color.WHITE);
         panel.add(title, BorderLayout.WEST);
 
@@ -85,13 +85,14 @@ public class ClientDashboard extends JFrame {
         panel.setBorder(BorderFactory.createMatteBorder(0, 0, 0, 1, DARK_MAIN_COLOR));
         
         panel.add(createLogoPanel());
-
-        String[][] menuItems = { 
-        	    {Icons.PROFILE, "Mon Profil"},
-        	    {Icons.PAYMENT, "Paiement"},
-        	    {Icons.BILLS, "Mes Factures"},
-        	    {Icons.NOTIFICATIONS, "Notifications"},
-        	}; 
+        
+        String[][] menuItems = {
+                {"\uD83D\uDC64", "Mon Profil"},
+                {"\uD83D\uDCB3", "Paiement"},
+                {"\uD83D\uDCB8", "Mes Factures"},
+                {"\uD83D\uDD14", "Notifications"},
+            };
+            
         
         for (int i = 0; i < menuItems.length; i++) {
             JPanel item = createMenuButton(menuItems[i][0], menuItems[i][1], i);

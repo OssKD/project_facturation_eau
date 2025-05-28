@@ -12,10 +12,11 @@ import java.time.format.DateTimeFormatter;
 
 public class FactureManagementPanel extends JPanel {
     // Composants de l'interface
-    private JTextField compteurField, nouvelIndexField;
-    private JTextField filtreCompteurField; // Champ pour le filtre
-    private JButton btnCreer, btnModifier, btnSupprimer, btnPDF, btnFiltrer; // Bouton Filtrer
-    private JTable factureTable;
+    private JTextField compteurField, nouvelIndexField, moisField; // Ajout de moisField
+    private JComboBox<String> etatPaiementField; // Ajout de etatPaiementField
+    private JTextField filtreCompteurField;
+    private JButton btnCreer, btnModifier, btnSupprimer, btnFiltrer;
+    private JTable factureTable; // Déclaration de la JTable
     private DefaultTableModel tableModel;
 
     private static final Color HEADER_COLOR = new Color(66, 135, 247);
@@ -35,14 +36,18 @@ public class FactureManagementPanel extends JPanel {
 
         // Contenu principal
         JPanel mainContentPanel = new JPanel(new BorderLayout(15, 15));
-        mainContentPanel.add(createFormPanel(), BorderLayout.WEST);
-        mainContentPanel.add(createTablePanel(), BorderLayout.CENTER);
+
+        // === CORRECTION ICI : createTablePanel doit être appelé AVANT createFormPanel ===
+        // Car createFormPanel() ajoute un Listener à factureTable
+        mainContentPanel.add(createTablePanel(), BorderLayout.CENTER); // Initialise factureTable ici
+        mainContentPanel.add(createFormPanel(), BorderLayout.WEST);  // Ce panneau utilise maintenant factureTable
+
         add(mainContentPanel, BorderLayout.CENTER);
 
         chargerFactures(); // Charger toutes les factures à l'initialisation
     }
 
-    // Panneau de formulaire
+    // Panneau de formulaire - MODIFIÉ (Listener déplacé pour plus de logique)
     private JPanel createFormPanel() {
         JPanel formPanel = new JPanel(new BorderLayout(0, 10));
         formPanel.setBorder(BorderFactory.createCompoundBorder(
@@ -57,20 +62,23 @@ public class FactureManagementPanel extends JPanel {
 
         compteurField = createStyledTextField();
         nouvelIndexField = createStyledTextField();
+        moisField = createStyledTextField(); // Initialisation du nouveau champ
+        etatPaiementField = new JComboBox<>(new String[]{"N", "P"}); // Initialisation du nouveau champ
 
         addLabelAndField(fieldsPanel, "N° Compteur:", compteurField, gbc, 0);
         addLabelAndField(fieldsPanel, "Nouvel Index:", nouvelIndexField, gbc, 1);
+        addLabelAndField(fieldsPanel, "Mois (YYYY-MM-DD):", moisField, gbc, 2); // Ajout label+champ
+        addLabelAndField(fieldsPanel, "État Paiement (N/P):", etatPaiementField, gbc, 3); // Ajout label+champ
 
         JPanel buttonPanel = new JPanel(new GridLayout(1, 4, 10, 0));
         btnCreer = createStyledButton("Créer Facture", new Color(23, 76, 60));
         btnModifier = createStyledButton("Modifier", new Color(23, 76, 60));
         btnSupprimer = createStyledButton("Supprimer", new Color(23, 76, 60));
-        btnPDF = createStyledButton("PDF", new Color(23, 76, 60));
 
         buttonPanel.add(btnCreer);
         buttonPanel.add(btnModifier);
         buttonPanel.add(btnSupprimer);
-        buttonPanel.add(btnPDF);
+      
 
         formPanel.add(fieldsPanel, BorderLayout.CENTER);
         formPanel.add(buttonPanel, BorderLayout.SOUTH);
@@ -78,14 +86,18 @@ public class FactureManagementPanel extends JPanel {
         btnCreer.addActionListener(e -> ajouterFacture());
         btnSupprimer.addActionListener(e -> supprimerFacture());
         btnModifier.addActionListener(e -> modifierFacture());
-        btnPDF.addActionListener(e -> genererPDF());
+       
+
+        // Le Listener de sélection de ligne EST MAINTENANT AJOUTÉ DANS createTablePanel
+        // C'est plus logique car il dépend directement de la JTable.
+        // Si vous l'aviez laissé ici, la NPE surviendrait.
 
         return formPanel;
     }
 
     private JTextField createStyledTextField() {
         JTextField field = new JTextField();
-        field.setPreferredSize(new Dimension(150, 28)); // Ajusté la taille
+        field.setPreferredSize(new Dimension(150, 28));
         return field;
     }
 
@@ -111,7 +123,7 @@ public class FactureManagementPanel extends JPanel {
         panel.add(field, gbc);
     }
 
-    // Panneau de table - MODIFIÉ pour afficher moins de colonnes
+    // Panneau de table - MODIFIÉ pour ajouter le Listener
     private JScrollPane createTablePanel() {
         tableModel = new DefaultTableModel() {
             @Override
@@ -119,24 +131,20 @@ public class FactureManagementPanel extends JPanel {
                 return false; // Les cellules ne sont pas éditables
             }
         };
-        // --- Colonnes affichées CHANGÉ ---
         String[] colonnes = {"ID Facture", "Mois", "Montant", "État de Paiement", "Compteur", "Consommation"};
         tableModel.setColumnIdentifiers(colonnes);
-        // ---------------------------------
 
-        factureTable = new JTable(tableModel);
+
+        factureTable = new JTable(tableModel); // factureTable est initialisé ici
         factureTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         factureTable.setRowHeight(13);
         factureTable.getTableHeader().setBackground(HEADER_COLOR);
         factureTable.getTableHeader().setForeground(Color.BLUE);
         factureTable.getTableHeader().setFont(new Font("Arial", Font.BOLD, 13));
 
-        // Définit les rendus de cellule
         DefaultTableCellRenderer rightRenderer = new DefaultTableCellRenderer();
         rightRenderer.setHorizontalAlignment(JLabel.RIGHT);
-        NumberFormat currencyFormat = NumberFormat.getCurrencyInstance(Locale.FRANCE);
 
-        // Rendu pour les montants
         TableCellRenderer currencyRenderer = new DefaultTableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
@@ -150,27 +158,21 @@ public class FactureManagementPanel extends JPanel {
             }
         };
 
-        // --- Appliquer les rendus de cellule (indices ajustés) ---
         factureTable.getColumnModel().getColumn(2).setCellRenderer(currencyRenderer); // Montant
         factureTable.getColumnModel().getColumn(3).setCellRenderer(rightRenderer); // État de Paiement
         factureTable.getColumnModel().getColumn(4).setCellRenderer(rightRenderer); // Compteur
         factureTable.getColumnModel().getColumn(5).setCellRenderer(rightRenderer); // Consommation
-        // ----------------------------------------------------------
 
 
+        // Le ListSelectionListener est ajouté ici, APRÈS l'initialisation de factureTable
         factureTable.getSelectionModel().addListSelectionListener(e -> {
+            // S'assurer que la sélection est stable et qu'une ligne est bien sélectionnée
             if (!e.getValueIsAdjusting() && factureTable.getSelectedRow() != -1) {
-                // Note : Afficher les détails pour modification va toujours essayer de remplir
-                // les champs Compteur et Nouvel Index. Si vous sélectionnez une ligne
-                // qui n'affiche pas ces informations, il faudra adapter cette méthode
-                // ou l'interface de modification.
-                 // Pour l'instant, on laisse tel quel car les champs Compteur et NouvelIndex
-                 // sont essentiels pour l'ajout et la modification même si AncienIndex n'est pas affiché.
                 afficherDetailsFacturePourModification(factureTable.getSelectedRow());
             }
         });
 
-        // --- Panneau de Filtre ---
+
         JPanel filterPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
         JLabel filterLabel = new JLabel("Filtrer par N° Compteur:");
         filterLabel.setFont(new Font("Arial", Font.PLAIN, 14));
@@ -182,16 +184,13 @@ public class FactureManagementPanel extends JPanel {
         filterPanel.add(filtreCompteurField);
         filterPanel.add(btnFiltrer);
         filtreCompteurField.addActionListener(e -> chargerFactures());
-        // --- Fin Panneau de Filtre ---
 
         JScrollPane scrollPane = new JScrollPane(factureTable);
 
-        // Combiner le panneau de filtre et le tableau dans un panneau de contenu
         JPanel contentPanel = new JPanel(new BorderLayout(0, 10));
         contentPanel.add(filterPanel, BorderLayout.NORTH);
         contentPanel.add(scrollPane, BorderLayout.CENTER);
 
-        // Envelopper le panneau de contenu dans un JScrollPane principal avec la bordure
         JScrollPane mainScrollPane = new JScrollPane(contentPanel);
         mainScrollPane.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createTitledBorder(BorderFactory.createLineBorder(HEADER_COLOR),
@@ -201,51 +200,24 @@ public class FactureManagementPanel extends JPanel {
         return mainScrollPane;
     }
 
-    // Méthode adaptée pour afficher les détails pour la modification
-     // Cette méthode charge toujours Compteur et Nouvel Index même s'Ancien Index n'est pas affiché
+    // Méthode adaptée pour afficher les détails pour la modification - MODIFIÉ
     private void afficherDetailsFacturePourModification(int row) {
         if (row < 0 || row >= tableModel.getRowCount()) {
             return; // Ligne invalide
         }
-        // Puisque "Ancien Index" et "Nouvel Index" ne sont plus affichés dans le tableau,
-        // vous ne pouvez pas les récupérer directement depuis tableModel.getValueAt(row, index).
-        // Si vous voulez que ces champs soient remplis lors de la sélection, vous devez
-        // soit les garder cachés dans le modèle de table (plus complexe), soit
-        // les charger à nouveau depuis la base de données quand une ligne est sélectionnée.
-        // La version actuelle remplit les champs Compteur et NouvelIndex des champs de SAISIE
-        // en utilisant les valeurs récupérées du modèle de table (qui ne contient plus Ancien Index par exemple)
-        // Pour une modification complète, il faudrait charger TOUTES les infos de la ligne sélectionnée
-        // depuis la DB au moment de la sélection si les colonnes Ancien Index et Nouvel Index sont retirées du modèle.
-        // Pour l'instant, on va se baser sur les colonnes restantes affichées.
-        // Les indices des colonnes "Compteur" et "Nouvel Index" doivent être ajustés
-        // dans le tableModel selon les colonnes AUSSI PRÉSENTES dans le modèle.
-        // Avec les nouvelles colonnes: {"ID Facture", "Mois", "Montant", "État de Paiement", "Compteur", "Consommation"}
-        // Compteur est à l'indice 4
-        // Consommation est à l'indice 5
-        // Nouvel Index n'est PLUS dans les colonnes affichées.
 
-
-        // === MODIFICATION nécessaire ici ===
-        // Puisque Nouvel_Index n'est plus affiché, on ne peut pas le récupérer directement
-        // de tableModel. La modification nécessite le Nouvel Index EXISTANT pour validation.
-        // Il est plus simple de NE PAS modifier la méthode afficherDetailsFacturePourModification
-        // si son but est de remplir les champs de saisie Compteur et Nouvel Index
-        // pour une modification future (qui nécessite AncienIndex et NouvelIndex de la DB).
-        // L'état actuel du code basé sur les indices 5 (Compteur) et 7 (Nouvel Index)
-        // des versions PRÉCÉDENTES n'est plus correct avec les nouvelles colonnes.
-        // L'option la plus robuste si Ancien Index et Nouvel Index ne sont pas affichés
-        // est de recharger les détails complets (y compris Ancien/Nouvel Index)
-        // depuis la base de données basée sur l'ID Facture sélectionné.
-
-        // Récupérer l'ID Facture de la ligne sélectionnée (indice 0)
         Object factIdObj = tableModel.getValueAt(row, 0);
         if (factIdObj == null) {
-            return; // ID non trouvé dans le modèle? Ne devrait pas arriver.
+             // Ne devrait pas arriver si l'ID est toujours la première colonne et int
+             // Mais on garde la sécurité
+             JOptionPane.showMessageDialog(this, "Impossible de trouver l'ID de la facture sélectionnée.", "Erreur", JOptionPane.ERROR_MESSAGE);
+             viderChamps(); // Vide les champs si erreur
+             return;
         }
         int factureId = (Integer) factIdObj;
 
-        // Charger les détails complets de la facture depuis la base de données
-        String getFactureDetailsSQL = "SELECT numero_compteur, Nouvel_Index FROM facture WHERE id_facture = ?";
+        // Charger les détails complets de la facture depuis la base de données - REQUÊTE MODIFIÉE
+        String getFactureDetailsSQL = "SELECT numero_compteur, Nouvel_Index, mois, etat_payment FROM facture WHERE id_facture = ?";
         try (Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/javaswing_app", "root", "");
              PreparedStatement ps = conn.prepareStatement(getFactureDetailsSQL)) {
 
@@ -253,33 +225,40 @@ public class FactureManagementPanel extends JPanel {
             ResultSet rs = ps.executeQuery();
 
             if (rs.next()) {
-                // Remplir les champs de saisie avec les valeurs chargées
+                // Remplir les champs de saisie avec les valeurs chargées - CHAMPS MOIS ET ÉTAT AJOUTÉS
+                // Attention : le mois est une DATE en DB, on l'affiche simplement comme String ici
                 compteurField.setText(rs.getString("numero_compteur"));
-                nouvelIndexField.setText(String.valueOf(rs.getDouble("Nouvel_Index"))); // Convertir double en String
+                nouvelIndexField.setText(String.valueOf(rs.getDouble("Nouvel_Index")));
+                moisField.setText(rs.getString("mois")); // Afficher le mois (format YYYY-MM-DD)
+                etatPaiementField.setSelectedItem(rs.getString("etat_payment")); // Afficher l'état
+
+            } else {
+                // Si la facture n'est pas trouvée dans la DB malgré sa présence dans le modèle
+                // (peu probable mais par sécurité)
+                viderChamps();
+                JOptionPane.showMessageDialog(this, "Détails complets de la facture ID " + factureId + " non trouvés en base.", "Données manquantes", JOptionPane.WARNING_MESSAGE);
             }
             rs.close();
 
         } catch (SQLException e) {
             e.printStackTrace();
             System.err.println("Erreur lors du chargement des détails de facture pour modification: " + e.getMessage());
-            // Afficher un message d'erreur à l'utilisateur si c'est critique
-             JOptionPane.showMessageDialog(this, "Erreur lors du chargement complet des détails de facture.", "Erreur DB", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Erreur lors du chargement complet des détails de facture.", "Erreur DB", JOptionPane.ERROR_MESSAGE);
+            viderChamps(); // Vide les champs en cas d'erreur DB
         } catch (Exception e) {
              e.printStackTrace();
              System.err.println("Erreur inattendue lors de l'affichage des détails: " + e.getMessage());
+             viderChamps(); // Vide les champs en cas d'erreur inattendue
         }
-        // === Fin de la MODIFICATION nécessaire ===
-
-
     }
 
-    // Méthode chargerFactures MODIFIÉE pour la requête SELECT et l'extraction des données
+    // Méthode chargerFactures INCHANGÉE (adapte seulement l'affichage, pas la logique de sélection)
     private void chargerFactures() {
         String filtreCompteur = filtreCompteurField.getText().trim();
 
-        // --- Requête SELECT modifiée pour ne prendre que les colonnes nécessaires ---
-        String sql = "SELECT id_facture, DATE_FORMAT(mois, '%Y-%m') AS mois, montant, etat_payment, numero_compteur, Consommation FROM facture ";
-        // On sélectionne id_facture, mois, montant, etat_payment, compteur, Consommation
+
+        String sql = "SELECT id_facture, DATE_FORMAT(mois, '%Y-%m-%d') AS mois, montant, etat_payment, numero_compteur, Consommation FROM facture ";
+
 
         if (!filtreCompteur.isEmpty()) {
             sql += " WHERE numero_compteur LIKE ?";
@@ -298,18 +277,18 @@ public class FactureManagementPanel extends JPanel {
             tableModel.setRowCount(0); // Vider le modèle
 
             while (rs.next()) {
-                // --- Extraction des données ajustée aux colonnes sélectionnées ---
+
                 Object[] row = {
                     rs.getInt("id_facture"),
-                    rs.getString("mois"),
+                    rs.getString("mois"), // Mois est maintenant lu comme une String formatted
                     rs.getDouble("montant"),
                     rs.getString("etat_payment"),
                     rs.getString("numero_compteur"),
                     rs.getDouble("Consommation")
-                    // Moitie, Ancien_Index, Nouvel_Index ne sont plus extraits ici
+
                 };
                 tableModel.addRow(row);
-                // ---------------------------------------------------------------
+
             }
              rs.close();
 
@@ -319,15 +298,7 @@ public class FactureManagementPanel extends JPanel {
         }
     }
 
-    // Méthode ajouterFacture (inchangée dans sa LOGIQUE de calcul, mais on n'insère plus 'prix_unite' ou 'moitie' ou 'Ancien_Index' directement si ces colonnes ont été retirées de la DB)
-    // NOTE : L'insertion a été ajustée dans le code précédent pour ne pas insérer 'prix_unite'.
-    // Il faut que la requête INSERT corresponde aux colonnes réelles de votre table DB.
-    // La requête INSERT ici est "INSERT INTO facture(id_user, mois, montant, moitie, etat_payment, compteur, Ancien_Index, Nouvel_Index, Consommation)"
-    // Si 'moitie', 'Ancien_Index', 'Nouvel_Index' doivent être retirés de l'INSERT, ajustez-la ici.
-    // MAIS attention, 'Ancien_Index' et 'Nouvel_Index' sont ESSENTIELS pour le calcul des factures futures et la modification.
-    // Il est recommandé de CONSERVER Ancien_Index et Nouvel_Index dans la base de données même
-    // s'ils ne sont pas affichés dans le tableau principal.
-    // L'INSERT est donc correct si votre table DB contient bien ces colonnes.
+    // Méthode ajouterFacture (LOGIQUE INCHANGÉE, vérifie seulement le compteur)
     private void ajouterFacture() {
         try {
             String compteur = compteurField.getText().trim();
@@ -335,13 +306,14 @@ public class FactureManagementPanel extends JPanel {
                 JOptionPane.showMessageDialog(this, "Veuillez entrer le numéro de compteur.", "Champ manquant", JOptionPane.WARNING_MESSAGE);
                 return;
             }
-            
+
             String nouvelIndexStr = nouvelIndexField.getText().trim();
             if (nouvelIndexStr.isEmpty()) {
                  JOptionPane.showMessageDialog(this, "Veuillez entrer le nouvel index.", "Champ manquant", JOptionPane.WARNING_MESSAGE);
                  return;
             }
-            //test d'esxistance de compteur 
+
+            //test d'esxistance de compteur
             String checkCompteurSQL = "SELECT COUNT(*) FROM user WHERE numero_compteur = ?";
 
             try (Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/javaswing_app", "root", "");
@@ -359,11 +331,11 @@ public class FactureManagementPanel extends JPanel {
                 }
                 rsCheck.close();
             }
-            
+
             double nouvelIndex = Double.parseDouble(nouvelIndexStr);
             double ancienIndex = 0.0; // Valeur par défaut si aucune facture trouvée
 
-            // Rechercher la dernière facture pour ce compteur (nécessite toujours Nouvel_Index de la DB)
+            // Rechercher la dernière facture pour ce compteur
             String getLastFactureSQL = "SELECT Nouvel_Index FROM facture WHERE numero_compteur = ? ORDER BY mois DESC, id_facture DESC LIMIT 1";
             try (Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/javaswing_app", "root", "");
                  PreparedStatement psLast = conn.prepareStatement(getLastFactureSQL)) {
@@ -401,22 +373,25 @@ public class FactureManagementPanel extends JPanel {
                 montant = consommation * 3.0;
             }
 
-            // Générer la date du mois actuel
+            // Générer la date du mois actuel (par défaut pour la création)
             LocalDate dateActuelle = LocalDate.now();
             String moisFacture = dateActuelle.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
 
-            // Insérer la nouvelle facture - La requête INSERT reste la même si vous conservez les colonnes en DB
+             // Insérer la nouvelle facture - Utilise les champs existants + Ancien/Nouvel Index & Consommation
              String insertFactureSQL = "INSERT INTO facture(id_user, mois, montant, moitie, etat_payment, numero_compteur , Ancien_Index, Nouvel_Index, Consommation) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
             try (Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/javaswing_app", "root", "");
                  PreparedStatement psInsert = conn.prepareStatement(insertFactureSQL)) {
 
-                int idUser = 1; // Exemple simple
-                psInsert.setInt(1, idUser);
-                psInsert.setString(2, moisFacture);
+                int idUser = 1; // Exemple simple - Pense à récupérer dynamiquement l'id user lié au compteur
+                                // Il faudrait potentiellement faire une requête supplémentaire pour obtenir l'id_user à partir du numero_compteur
+                                // `SELECT id_user FROM user WHERE numero_compteur = ?`
+
+                psInsert.setInt(1, idUser); // Utilise l'id user (pour l'instant 1)
+                psInsert.setString(2, moisFacture); // Utilise la date actuelle pour la création
                 psInsert.setDouble(3, montant);
                 psInsert.setInt(4, 1); // 'moitie' - à définir selon votre logique métier
-                psInsert.setString(5, "N"); // 'etat_payment' - 'N' pour Non payé par défaut
+                psInsert.setString(5, "N"); // 'etat_payment' - 'N' pour Non payé par défaut pour la création
                 psInsert.setString(6, compteur);
                 psInsert.setDouble(7, ancienIndex); // Insérer l'ancien index trouvé/calculé
                 psInsert.setDouble(8, nouvelIndex); // Insérer le nouvel index saisi
@@ -443,8 +418,7 @@ public class FactureManagementPanel extends JPanel {
         }
     }
 
-     // Méthode modifierFacture (la LOGIQUE de calcul par tranches reste la même.
-     // La récupération de l'Ancien Index avant modification est toujours nécessaire.)
+     // Méthode modifierFacture - MODIFIÉ
      private void modifierFacture() {
         int row = factureTable.getSelectedRow();
         if (row != -1) {
@@ -456,20 +430,28 @@ public class FactureManagementPanel extends JPanel {
             int factureId = (Integer) factIdObj;
 
             try {
-                String nouvelIndexStr = nouvelIndexField.getText().trim();
-                if (nouvelIndexStr.isEmpty()) {
-                     JOptionPane.showMessageDialog(this, "Veuillez entrer le nouveau Nouvel Index pour la modification.", "Champ manquant", JOptionPane.WARNING_MESSAGE);
-                     return;
+                String nouveauCompteur = compteurField.getText().trim(); // Récupérer le nouveau compteur
+                String nouvelIndexStr = nouvelIndexField.getText().trim(); // Récupérer le nouvel index saisi
+                String moisModifie = moisField.getText().trim(); // Récupérer le mois modifié
+                String etatModifie = (String) etatPaiementField.getSelectedItem(); // Récupérer l'état modifié
+
+                // Validations de base des champs modifiés
+                if (nouveauCompteur.isEmpty() || nouvelIndexStr.isEmpty() || moisModifie.isEmpty() || etatModifie == null || etatModifie.isEmpty()) {
+                    JOptionPane.showMessageDialog(this, "Veuillez remplir tous les champs (Compteur, Nouvel Index, Mois, État Paiement) pour modifier la facture.", "Champ manquant", JOptionPane.WARNING_MESSAGE);
+                    return;
                 }
+
                 double nouveauNouvelIndexSaisi = Double.parseDouble(nouvelIndexStr);
 
-                // Récupérer l'Ancien Index actuel de la facture sélectionnée depuis la DB (nécessaire pour validation et calcul)
-                String getFactureSQL = "SELECT Ancien_Index FROM facture WHERE id_facture = ?";
+                // --- Récupérer l'Ancien Index ACTUEL de la facture depuis la DB ---
+                // C'est l'ancien index enregistré sur la ligne de FACTURE sélectionnée.
+                // Il est nécessaire pour recalculer CONSOMMATION et MONTANT.
+                String getAncienIndexSQL = "SELECT Ancien_Index FROM facture WHERE id_facture = ?";
                 double ancienIndexActuel = 0.0;
                 boolean factureExists = false;
 
                  try (Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/javaswing_app", "root", "");
-                     PreparedStatement psGet = conn.prepareStatement(getFactureSQL)) {
+                     PreparedStatement psGet = conn.prepareStatement(getAncienIndexSQL)) {
                      psGet.setInt(1, factureId);
                      ResultSet rsGet = psGet.executeQuery();
                      if (rsGet.next()) {
@@ -480,51 +462,62 @@ public class FactureManagementPanel extends JPanel {
                  }
 
                  if (!factureExists) {
-                     JOptionPane.showMessageDialog(this, "Facture sélectionnée non trouvée dans la base de données.", "Erreur", JOptionPane.ERROR_MESSAGE);
+                     JOptionPane.showMessageDialog(this, "Facture sélectionnée non trouvée dans la base de données (ID " + factureId + "). Impossible de modifier.", "Erreur", JOptionPane.ERROR_MESSAGE);
+                     chargerFactures(); // Rafraîchir au cas où elle n'existe plus
+                     viderChamps();
                      return;
                  }
 
-                // Validation du nouvel index modifié
+                // --- Validation du nouvel index modifié par rapport à cet Ancien Index Actuel ---
                 if (nouveauNouvelIndexSaisi < ancienIndexActuel) {
-                    JOptionPane.showMessageDialog(this, "Le nouveau Nouvel Index saisi (" + nouveauNouvelIndexSaisi + ") doit être supérieur ou égal à l'Ancien Index actuel (" + ancienIndexActuel + ").", "Données Invalides", JOptionPane.WARNING_MESSAGE);
+                    JOptionPane.showMessageDialog(this, "Le nouveau Nouvel Index saisi (" + nouveauNouvelIndexSaisi + ") doit être supérieur ou égal à l'Ancien Index actuel (" + ancienIndexActuel + " pour cette facture).", "Données Invalides", JOptionPane.WARNING_MESSAGE);
                     return;
                 }
 
                 // Recalculer la consommation avec le nouveau Nouvel Index et l'Ancien Index actuel
                 double nouvelleConsommation = nouveauNouvelIndexSaisi - ancienIndexActuel;
 
-                // CALCUL DU MONTANT PAR TRANCHES POUR LA MODIFICATION (inchangé)
-                double nouveauMontant = 0.0;
-                if (nouvelleConsommation <= 150) {
-                    nouveauMontant = nouvelleConsommation * 1.5;
-                } else if (nouvelleConsommation > 150 && nouvelleConsommation <= 300) {
-                    nouveauMontant = nouvelleConsommation * 2.0;
-                } else if (nouvelleConsommation > 300 && nouvelleConsommation <= 450) {
-                    nouveauMontant = nouvelleConsommation * 2.5;
-                } else if (nouvelleConsommation > 450) {
-                    nouveauMontant = nouvelleConsommation * 3.0;
-                }
+                // CALCULE LE MONTANT SI LE NOUVEL INDEX A CHANGÉ (LOGIQUE inchangée)
+                 double nouveauMontant = 0.0;
+                 if (nouvelleConsommation <= 150) {
+                     nouveauMontant = nouvelleConsommation * 1.5;
+                 } else if (nouvelleConsommation > 150 && nouvelleConsommation <= 300) {
+                     nouveauMontant = nouvelleConsommation * 2.0;
+                 } else if (nouvelleConsommation > 300 && nouvelleConsommation <= 450) {
+                     nouveauMontant = nouvelleConsommation * 2.5;
+                 } else if (nouvelleConsommation > 450) {
+                     nouveauMontant = nouvelleConsommation * 3.0;
+                 }
 
-                // Mettre à jour la facture dans la base de données
-                // On met à jour Nouvel_Index, Consommation et Montant. Ancien_Index ne change pas.
-                String updateFactureSQL = "UPDATE facture SET Nouvel_Index=?, Consommation=?, montant=? WHERE id_facture=?";
+
+                // Mettre à jour la facture dans la base de données - REQUÊTE MODIFIÉE
+                // On met à jour Compteur, Mois, Etat Paiement, Nouvel_Index, Consommation et Montant.
+                // L'Ancien_Index de cette ligne de facture NE CHANGE PAS lors de la modification.
+                String updateFactureSQL = "UPDATE facture SET numero_compteur=?, mois=?, etat_payment=?, Nouvel_Index=?, Consommation=?, montant=? WHERE id_facture=?";
                 try (Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/javaswing_app", "root", "");
                      PreparedStatement psUpdate = conn.prepareStatement(updateFactureSQL)) {
 
-                    psUpdate.setDouble(1, nouveauNouvelIndexSaisi);
-                    psUpdate.setDouble(2, nouvelleConsommation);
-                    psUpdate.setDouble(3, nouveauMontant);
-                    psUpdate.setInt(4, factureId);
+                    psUpdate.setString(1, nouveauCompteur); // Mettre à jour le compteur
+                    psUpdate.setString(2, moisModifie); // Mettre à jour le mois (Assurez-vous que le format YYYY-MM-DD est correct pour la colonne DATE)
+                    psUpdate.setString(3, etatModifie); // Mettre à jour l'état
+                    psUpdate.setDouble(4, nouveauNouvelIndexSaisi); // Mettre à jour le nouvel index
+                    psUpdate.setDouble(5, nouvelleConsommation); // Mettre à jour la consommation
+                    psUpdate.setDouble(6, nouveauMontant); // Mettre à jour le montant recalculé
+                    psUpdate.setInt(7, factureId); // Utilise l'ID pour cibler la bonne ligne
 
 
                     int rowsAffected = psUpdate.executeUpdate();
 
                     if (rowsAffected > 0) {
                          JOptionPane.showMessageDialog(this, "Facture ID " + factureId + " modifiée avec succès !", "Succès", JOptionPane.INFORMATION_MESSAGE);
-                        chargerFactures(); // Rafraîchir la table
-                        viderChamps();
+                        chargerFactures(); // Rafraîchir la table pour montrer les changements
+                        viderChamps(); // Vider les champs après modification réussie
                     } else {
+                        // Cela peut arriver si la facture a été supprimée par un autre utilisateur
+                        // ou si la sélection JTable n'était pas synchronisée avec la DB
                         JOptionPane.showMessageDialog(this, "Aucune facture trouvée avec l'ID " + factureId + " pour modification.", "Erreur", JOptionPane.ERROR_MESSAGE);
+                         chargerFactures(); // التحديث للتأكد
+                         viderChamps();
                     }
                 }
 
@@ -544,11 +537,17 @@ public class FactureManagementPanel extends JPanel {
     }
 
 
+    // Méthode viderChamps - MODIFIÉE
     private void viderChamps() {
         compteurField.setText("");
         nouvelIndexField.setText("");
-        factureTable.clearSelection();
+        moisField.setText(""); // Vide aussi le champ mois
+        etatPaiementField.setSelectedIndex(0); // Remet la JComboBox au premier élément ("N")
+        if (factureTable != null) { // Vérification
+             factureTable.clearSelection(); // Désélectionne la ligne du tableau
+        }
     }
+
 
     // Méthode supprimerFacture (inchangée)
     private void supprimerFacture() {
@@ -576,7 +575,11 @@ public class FactureManagementPanel extends JPanel {
                         chargerFactures(); // Rafraîchir la table
                         viderChamps();
                     } else {
+                        // Cela peut arriver si la facture a été supprimée par un autre utilisateur
+                        // ou si la sélection JTable n'était pas synchronisée avec la DB
                         JOptionPane.showMessageDialog(this, "Aucune facture trouvée avec l'ID " + factureId + " pour suppression.", "Erreur", JOptionPane.ERROR_MESSAGE);
+                         chargerFactures(); // التحديث للتأكد
+                         viderChamps();
                     }
 
                 } catch (SQLException ex) {
@@ -589,7 +592,7 @@ public class FactureManagementPanel extends JPanel {
         }
     }
 
-    // Méthode convertirMoisDeDate (laissée au cas où, mais probablement non utilisée par la table maintenant)
+    // Méthode convertirMoisDeDate (inchangée, mais potentiellement non utilisée directement)
     private String convertirMoisDeDate(String date) {
          if (date != null && (date.matches("\\d{4}-\\d{2}") || date.matches("\\d{4}-\\d{2}-\\d{2}"))) {
             try {
@@ -607,8 +610,5 @@ public class FactureManagementPanel extends JPanel {
     }
 
 
-    // Méthode pour générer le PDF (à implémenter)
-    private void genererPDF() {
-         JOptionPane.showMessageDialog(this, "La génération de PDF n'est pas encore implémentée.", "Fonctionnalité future", JOptionPane.INFORMATION_MESSAGE);
-    }
+   
 }
